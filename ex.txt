@@ -1,0 +1,41 @@
+Role: Senior Systems Architect Task: Refine and specialize the design.md for the "VedaCode" system. Objective: Transition the current generic "CodeGraph" and "Learning Service" into high-fidelity, opinionated features that match the "Developer-as-Student" philosophy.
+
+Please perform the following updates to the document:
+
+1. Visual Identity & Graph Logic (Explore Mode)
+Update: Rename CodeGraph to ProjectConstellation.
+
+Specification: Explicitly define the use of React Flow with a radial-force layout.
+
+Logic: Add a requirement that the graph must cluster nodes (files/modules) into "Solar Systems" based on folder depth, with "Gravity" strength determined by the number of imports (AST dependency count).
+
+UI Hint: Update the GraphNode interface to include a luminosity property, where higher complexity/lines of code result in a "brighter" node in the UI.
+
+2. Just-In-Time (JIT) Explainer Logic (Learn Mode)
+Update: Modify the ExplanationService logic.
+
+Constraint: The generateExplanation function must follow a "Code-First, Theory-Second" protocol.
+
+Requirement: For any keyword, the agent must first perform a semantic search via pgvector to find the exact line of code in the user's current project where that keyword is implemented. The explanation must wrap around that specific code block before offering general documentation.
+
+3. Proactive Memory Retention (Learning Agent)
+Update: Formalize the "Micro-Challenge" system.
+
+New Interface:
+
+TypeScript
+
+interface MicroChallengeTrigger {
+  conceptId: string;
+  triggerTime: Date; // Exactly T+24h from first encounter
+  recallFormat: 'multiple-choice' | 'code-completion';
+  forgettingCurveDecay: number; // Computed via Ebbinhaus algorithm
+}
+Logic: Add a background worker requirement (using Upstash/Redis) to trigger these challenges as toast notifications or "In-Editor Interruptions" to break the forgetting curve.
+
+4. The "Context Guard" AST Bridge
+Specification: Add a section under AST Analysis Model called "Impact Ripple Mapping."
+
+Requirement: When a change is detected in schema.ts, the ts-morph parser must trace the "unbroken chain" from DB Model -> Drizzle Action -> Server Action -> Frontend Component. The UI must visualize this path as a "Red-Alert" trajectory in the Constellation map.
+
+Maintain the current Markdown formatting and ensure all new interfaces are strictly typed in TypeScript.
