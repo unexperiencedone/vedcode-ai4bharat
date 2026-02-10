@@ -26,16 +26,14 @@ export default function HeroSection() {
     }
   });
 
-  // Hero text fade out (Sync with Strata @ 30% viewport)
-  // With 200vh spacer:
-  // - Strata enters at 100vh scroll (bottom of screen)
-  // - Strata hits 30% viewport at ~170vh scroll (end of spacer - 30vh)
-  // - Progress = 170/200 = 0.85
-  const heroOpacity = useTransform(scrollYProgress, [0.8, 0.85], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0.8, 0.85], [1, 0.95]);
+  // Hero text exit animation (Sync with Strata @ 30% viewport)
+  // Instead of just fading, it shrinks and scrolls up
+  const heroOpacity = useTransform(scrollYProgress, [0.8, 0.9], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0.8, 0.9], [1, 0.5]); // Shrink
+  const heroY = useTransform(scrollYProgress, [0.8, 0.9], [0, -800]);    // Scroll UP
   
-  // Background calming effect
-  const bgOpacity = useTransform(scrollYProgress, [0.5, 0.85], [1, 0]);
+  // Background calming effect - stays visible longer now
+  const bgOpacity = useTransform(scrollYProgress, [0.5, 0.9], [1, 0]);
 
   // "Descend" text/indicator
   // Visible immediately to guide user
@@ -64,7 +62,7 @@ export default function HeroSection() {
 
         {/* Hero Content */}
         <motion.div
-          style={{ opacity: heroOpacity, scale: heroScale }}
+          style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
           className="relative z-10 text-center px-6 max-w-6xl mx-auto flex flex-col items-center justify-center h-full"
         >
           <div className="mb-20">
