@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, uuid, serial, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, uuid, serial, jsonb, boolean } from 'drizzle-orm/pg-core';
 import { relations } from "drizzle-orm";
 
 export const logs = pgTable('logs', {
@@ -25,6 +25,16 @@ export const profiles = pgTable("profiles", {
   hobbies: jsonb("hobbies").default([]),
   currentLearning: text("current_learning"),
   socials: jsonb("socials").default({ github: "", twitter: "", site: "" }),
+  // Onboarding fields
+  onboardingComplete: boolean("onboarding_complete").default(false),
+  linkedin: text("linkedin"),
+  github: text("github"),
+  codingPhilosophy: text("coding_philosophy"), // Functional, Object-Oriented, Minimalist
+  interests: jsonb("interests").default([]), // Array of interest tags
+  primaryOs: text("primary_os"), // Linux, macOS, Windows
+  preferredIde: text("preferred_ide"), // VS Code, JetBrains, Neovim
+  hardwareSetup: text("hardware_setup"), // Free-text
+  themePreference: text("theme_preference"), // Midnight, Bone, Contrast
 });
 
 export const snippets = pgTable("snippets", {

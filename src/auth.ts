@@ -98,6 +98,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           session.user.handle = profile.handle;
           // @ts-ignore
           session.user.role = profile.role;
+          // @ts-ignore
+          session.user.onboardingComplete = profile.onboardingComplete;
         }
       }
       return session;

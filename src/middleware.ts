@@ -15,9 +15,33 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl)
   }
 
-  // If authenticated and trying to visit login/register, redirect to dashboard
+  // If authenticated and trying to visit login/register, redirect appropriately
   if (req.auth && (pathname === "/login" || pathname === "/register")) {
+    // @ts-ignore
+    const onboardingComplete = req.auth.user?.onboardingComplete
+    if (!onboardingComplete) {
+      return NextResponse.redirect(new URL("/onboarding", req.url))
+    }
     return NextResponse.redirect(new URL("/dashboard", req.url))
+  }
+
+  // If authenticated but onboarding not complete, redirect to onboarding
+  // (except when already on onboarding or API routes)
+  if (req.auth && !isPublic && pathname !== "/onboarding") {
+    // @ts-ignore
+    const onboardingComplete = req.auth.user?.onboardingComplete
+    if (!onboardingComplete) {
+      return NextResponse.redirect(new URL("/onboarding", req.url))
+    }
+  }
+
+  // If onboarding complete and trying to visit onboarding, redirect to dashboard
+  if (req.auth && pathname === "/onboarding") {
+    // @ts-ignore
+    const onboardingComplete = req.auth.user?.onboardingComplete
+    if (onboardingComplete) {
+      return NextResponse.redirect(new URL("/dashboard", req.url))
+    }
   }
 
   return NextResponse.next()
@@ -28,3 +52,4 @@ export const config = {
     "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 }
+
