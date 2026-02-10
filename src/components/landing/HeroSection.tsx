@@ -26,12 +26,14 @@ export default function HeroSection() {
     }
   });
 
-  // Hero text fade out (starts later, 60-80% scroll)
-  const heroOpacity = useTransform(scrollYProgress, [0.6, 0.8], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0.6, 0.8], [1, 0.9]);
-
-  // Background calming effect
-  const bgOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0.2]); // Keep some bg visible
+  // Hero text fade out (starts VERY late, 85-90% scroll)
+  // This ensures it stays visible until Strata is about to trigger (at ~30% viewport)
+  // With 250vh height, 88% scroll is roughly where Strata enters the top 30%
+  const heroOpacity = useTransform(scrollYProgress, [0.85, 0.9], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0.85, 0.9], [1, 0.9]);
+  
+  // Background calming effect - stays visible longer now
+  const bgOpacity = useTransform(scrollYProgress, [0.5, 0.9], [1, 0]);
 
   // "Descend" text typing effect
   const descendOpacity = useTransform(scrollYProgress, [0.02, 0.1], [0, 1]);
@@ -42,7 +44,7 @@ export default function HeroSection() {
   console.log("HeroSection rendered with CTA state:", showCTA);
 
   return (
-    <section ref={ref} className="relative h-[150vh] w-full">
+    <section ref={ref} className="relative h-[250vh] w-full">
       {/* Sticky Container for Hero Content */}
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
         {/* Animated Background - Controlled by scroll */}
