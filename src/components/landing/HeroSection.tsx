@@ -37,10 +37,12 @@ export default function HeroSection() {
   // Background calming effect
   const bgOpacity = useTransform(scrollYProgress, [0.5, 0.85], [1, 0]);
 
-  // "Descend" text typing effect
-  const descendOpacity = useTransform(scrollYProgress, [0.02, 0.1], [0, 1]);
-  const descendY = useTransform(scrollYProgress, [0.02, 0.1], [20, 0]);
-  const descendExitOpacity = useTransform(scrollYProgress, [0.1, 0.2], [1, 0]);
+  // "Descend" text/indicator
+  // Visible immediately to guide user
+  const descendOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]); // Fades out as you scroll
+  const descendY = useTransform(scrollYProgress, [0, 0.1], [0, 20]); // Moves down slightly
+  // We don't need descendExitOpacity separate logic if we just fade it out early
+
 
   // Debug log to ensure HMR is working
   console.log("HeroSection rendered with CTA state:", showCTA);
@@ -133,7 +135,7 @@ export default function HeroSection() {
 
         {/* Start Scrolling / Descend Indicator */}
         <motion.div
-          style={{ opacity: descendExitOpacity }} // Fade out quickly
+          style={{ opacity: descendOpacity }} // Fade out using the main opacity var
           className="absolute bottom-12 left-1/2 -translate-x-1/2 z-0"
         >
           <motion.div
