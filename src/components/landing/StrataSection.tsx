@@ -27,7 +27,7 @@ const strataCards = [
   },
 ];
 
-export default function StrataSection() {
+export default function StrataSection({ handedOver = false }: { handedOver?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
 
@@ -42,7 +42,7 @@ export default function StrataSection() {
     // Card 0 marker @ 100vh relative. Hits 80% height when scroll = 20vh. Progress = 20/500 = 0.04
     // Card 1 marker @ 200vh relative. Hits 80% height when scroll = 120vh. Progress = 120/500 = 0.24
     // Card 2 marker @ 300vh relative. Hits 80% height when scroll = 220vh. Progress = 220/500 = 0.44
-    // Handover @ 500vh (Next section top). Hits 40% height when scroll = 500 - 40 = 460. Progress = 460/500 = 0.92
+    // Handover occurs via prop from next section, but we still clamp index
     
     if (latest < 0.04) {
       setActiveIndex(-1);
@@ -50,40 +50,32 @@ export default function StrataSection() {
       setActiveIndex(0);
     } else if (latest < 0.44) {
       setActiveIndex(1);
-    } else if (latest < 0.92) {
-      setActiveIndex(2);
     } else {
-      setActiveIndex(-1); // Vanish for Ingestions
+      setActiveIndex(2);
     }
   });
-
-  // Heading Fade Out (at the very end of the cards)
-  const headingOpacity = useTransform(scrollYProgress, [0.92, 0.98], [1, 0]);
 
   return (
     <section ref={containerRef} className="relative bg-[#080b14] z-10">
       {/* Spacer for scroll length */}
       <div className="h-[500vh] pointer-events-none" />
 
-      {/* Sticky Display Layer - Changed to fixed for stability during scroll */}
-      {/* Actually stick with sticky if it feels better, but fixed with scroll-linked opacity is safer */}
+      {/* Sticky Display Layer */}
       <div className="fixed top-0 left-0 h-screen w-full flex flex-col items-center justify-start pointer-events-none overflow-hidden pb-20 z-10">
         
         {/* Heading remains at 25% screen height */}
         <div className="mt-[25vh] z-20">
-          <motion.div style={{ opacity: headingOpacity }}>
-            <TypingHeading text="STRUCTURAL STRATA" />
-          </motion.div>
+          <TypingHeading text="STRUCTURAL STRATA" isExiting={handedOver} />
         </div>
 
         {/* Cards settle in center */}
         <div className="flex-1 w-full relative flex items-center justify-center">
-          <div className="relative w-full max-w-6xl mx-auto px-6 flex items-center justify-center">
+          <div className="relative w-full max-w-6xl mx-auto px-6 h-full flex items-center justify-center">
             {strataCards.map((card, i) => (
               <Card 
                 key={card.id} 
                 card={card} 
-                isActive={activeIndex === i} 
+                isActive={activeIndex === i && !handedOver} 
               />
             ))}
           </div>
@@ -93,15 +85,21 @@ export default function StrataSection() {
   );
 }
 
-function TypingHeading({ text }: { text: string }) {
+function TypingHeading({ text, isExiting }: { text: string; isExiting: boolean }) {
   const letters = text.split("");
+  
   const container = {
     hidden: { opacity: 0 },
     visible: (i = 1) => ({
       opacity: 1,
       transition: { staggerChildren: 0.05, delayChildren: 0.04 * i },
     }),
+    exit: {
+      opacity: 0,
+      transition: { staggerChildren: 0.03, staggerDirection: 1, when: "afterChildren" }
+    }
   };
+
   const child = {
     hidden: { opacity: 0, x: 20 },
     visible: {
@@ -109,6 +107,11 @@ function TypingHeading({ text }: { text: string }) {
       x: 0,
       transition: { type: "spring" as const, damping: 12, stiffness: 100 },
     },
+    exit: {
+      opacity: 0,
+      x: -20,
+      transition: { duration: 0.2 }
+    }
   };
 
   return (
@@ -116,7 +119,7 @@ function TypingHeading({ text }: { text: string }) {
       className="text-3xl md:text-4xl text-center tracking-[0.5em] text-[#94a3b8] uppercase font-bold overflow-hidden flex"
       variants={container}
       initial="hidden"
-      whileInView="visible"
+      animate={isExiting ? "exit" : "visible"}
       viewport={{ once: false, margin: "0px 0px -75% 0px" }} // Trigger at 25% height
     >
       {letters.map((letter, index) => (
@@ -138,7 +141,9 @@ function Card({ card, isActive }: { card: any; isActive: boolean }) {
         ? { opacity: 1, x: 0, transition: { duration: 0.6, ease: "easeOut" } } 
         : { opacity: 0, x: -200, transition: { duration: 0 } } // Instant reset
       }
-      className="absolute w-full z-10 glass-bg border border-white/5 p-12 md:p-20 backdrop-blur-xl max-w-5xl shadow-2xl left-1/2 -translate-x-1/2"
+      className={`
+        absolute w-full z-10 glass-bg border border-white/5 p-12 md:p-20 backdrop-blur-xl max-w-5xl shadow-2xl left-1/2 -translate-x-1/2
+      `}
     >
       <div className={`flex flex-col ${isRight ? "md:flex-row-reverse text-right" : "md:flex-row"} gap-12 items-center`}>
         <div className="relative">

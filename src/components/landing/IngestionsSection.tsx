@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useScroll, useTransform, motion } from "framer-motion";
 import Link from "next/link";
 
@@ -37,14 +37,42 @@ const ingestions = [
   },
 ];
 
-export default function IngestionsSection() {
+export default function IngestionsSection({
+  onHandover,
+}: {
+  onHandover?: (handedOver: boolean) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [headingArrived, setHeadingArrived] = useState(false);
 
   return (
-    <section ref={containerRef} className="py-40 px-6 bg-[#080b14]">
+    <section ref={containerRef} className="py-40 px-6 bg-[#080b14] relative">
+      {/* Handover Marker - Triggers at 30.1% viewport height */}
+      <motion.div
+        className="absolute top-40 w-full h-[1px] pointer-events-none"
+        onViewportEnter={() => onHandover?.(true)}
+        onViewportLeave={(entry) => {
+          // If we scroll back up past the 30.1% mark
+          if (entry && entry.boundingClientRect.top > 0) {
+            onHandover?.(false);
+          }
+        }}
+        viewport={{ margin: "0px 0px -69.9% 0px" }} // 30.1% from top
+      />
+
       <div className="max-w-[1600px] mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, margin: "0px 0px -70% 0px" }} // Exactly 30%
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            onAnimationComplete={(definition) => {
+              if (definition === "initial") return; // Skip initial hidden state
+              setHeadingArrived(true);
+            }}
+            onViewportLeave={() => setHeadingArrived(false)}
+          >
             <span
               className="text-[#0d46f2] text-xs tracking-[0.5em] uppercase mb-4 block"
               style={{ fontFamily: "'Orbitron', sans-serif" }}
@@ -57,12 +85,11 @@ export default function IngestionsSection() {
             >
               RECENT INGESTIONS
             </h2>
-          </div>
+          </motion.div>
           <motion.div
             initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 1, duration: 1 }} // Fades in AFTER cards
+            animate={headingArrived ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }} // Delayed after cards start
           >
             <Link
               href="/login"
@@ -79,7 +106,12 @@ export default function IngestionsSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {ingestions.map((item, i) => (
-            <IngestionCard key={item.name} item={item} index={i} />
+            <IngestionCard
+              key={item.name}
+              item={item}
+              index={i}
+              startAnimation={headingArrived}
+            />
           ))}
         </div>
       </div>
@@ -87,15 +119,22 @@ export default function IngestionsSection() {
   );
 }
 
-function IngestionCard({ item, index }: { item: any; index: number }) {
+function IngestionCard({
+  item,
+  index,
+  startAnimation,
+}: {
+  item: any;
+  index: number;
+  startAnimation: boolean;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -50 }} // Slide in from Left
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
+      animate={startAnimation ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
       transition={{
         duration: 0.6,
-        delay: index * 0.15, // Stagger effect
+        delay: index * 0.15, // Stagger effect after heading
         ease: "easeOut",
       }}
       className="group relative aspect-[4/5] overflow-hidden border border-white/5 bg-white/5"
@@ -114,7 +153,7 @@ function IngestionCard({ item, index }: { item: any; index: number }) {
           <div className="absolute inset-0 bg-gradient-to-t from-[#080b14] via-transparent to-transparent" />
         </>
       )}
-      
+
       {/* Hover Reveal Content */}
       <div className="absolute bottom-0 left-0 p-8 w-full transform translate-y-4 group-hover:translate-y-0 transition-transform">
         <span

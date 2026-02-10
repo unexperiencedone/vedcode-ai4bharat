@@ -1,9 +1,14 @@
+"use client";
+
+import { useState } from "react";
 import HeroSection from "@/components/landing/HeroSection";
 import StrataSection from "@/components/landing/StrataSection";
 import IngestionsSection from "@/components/landing/IngestionsSection";
 import FooterCTA from "@/components/landing/FooterCTA";
 
 export default function LandingPage() {
+  const [handedOver, setHandedOver] = useState(false);
+
   return (
     <>
       <link
@@ -64,8 +69,8 @@ export default function LandingPage() {
         {/* Main Sections */}
         <main className="relative z-10 w-full">
             <HeroSection />
-            <StrataSection />
-            <IngestionsSection />
+            <StrataSection handedOver={handedOver} />
+            <IngestionsSection onHandover={setHandedOver} />
             <FooterCTA />
         </main>
 
