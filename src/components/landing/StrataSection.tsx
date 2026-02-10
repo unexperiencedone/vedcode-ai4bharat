@@ -38,7 +38,7 @@ export default function StrataSection() {
   const headingOpacity = useTransform(scrollYProgress, [0.95, 1], [1, 0]);
 
   return (
-    <section ref={containerRef} className="relative bg-[#080b14]">
+    <section ref={containerRef} className="relative bg-[#080b14] z-10">
       {/* Sticky Header Container */}
       <div className="sticky top-0 h-screen flex flex-col items-center justify-start py-20 pointer-events-none z-10">
         <motion.div style={{ opacity: headingOpacity }}>

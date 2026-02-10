@@ -26,27 +26,29 @@ export default function HeroSection() {
     }
   });
 
-  // Hero text fade out (starts VERY late, 85-90% scroll)
-  // This ensures it stays visible until Strata is about to trigger (at ~30% viewport)
-  // With 250vh height, 88% scroll is roughly where Strata enters the top 30%
-  const heroOpacity = useTransform(scrollYProgress, [0.85, 0.9], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0.85, 0.9], [1, 0.9]);
+  // Hero text fade out (Sync with Strata @ 30% viewport)
+  // With 200vh spacer:
+  // - Strata enters at 100vh scroll (bottom of screen)
+  // - Strata hits 30% viewport at ~170vh scroll (end of spacer - 30vh)
+  // - Progress = 170/200 = 0.85
+  const heroOpacity = useTransform(scrollYProgress, [0.8, 0.85], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0.8, 0.85], [1, 0.95]);
   
-  // Background calming effect - stays visible longer now
-  const bgOpacity = useTransform(scrollYProgress, [0.5, 0.9], [1, 0]);
+  // Background calming effect
+  const bgOpacity = useTransform(scrollYProgress, [0.5, 0.85], [1, 0]);
 
   // "Descend" text typing effect
   const descendOpacity = useTransform(scrollYProgress, [0.02, 0.1], [0, 1]);
   const descendY = useTransform(scrollYProgress, [0.02, 0.1], [20, 0]);
-  const descendExitOpacity = useTransform(scrollYProgress, [0.1, 0.2], [1, 0]); // Fades out quickly for CTAs
+  const descendExitOpacity = useTransform(scrollYProgress, [0.1, 0.2], [1, 0]);
 
   // Debug log to ensure HMR is working
   console.log("HeroSection rendered with CTA state:", showCTA);
 
   return (
-    <section ref={ref} className="relative h-[250vh] w-full">
-      {/* Sticky Container for Hero Content */}
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
+    <div ref={ref} className="relative h-[200vh] w-full"> {/* Spacer Div */}
+      {/* Fixed Container for Hero Content - Stays put! */}
+      <div className="fixed top-0 left-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden z-0">
         {/* Animated Background - Controlled by scroll */}
         <motion.div
           style={{ opacity: bgOpacity }}
@@ -147,6 +149,6 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
       </div>
-    </section>
+    </div>
   );
 }
