@@ -21,24 +21,23 @@ export default function HeroSection() {
     }
   });
 
-  // Hero text fade out (0-50% scroll)
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
+  // Hero text fade out (starts later, 60-80% scroll)
+  const heroOpacity = useTransform(scrollYProgress, [0.6, 0.8], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0.6, 0.8], [1, 0.9]);
   
-  // Background calming effect (0-50% scroll) - reducing chaos
-  const bgOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  // Background calming effect
+  const bgOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0.2]); // Keep some bg visible
 
-  // "Descend" text typing effect (starts at 2% scroll)
+  // "Descend" text typing effect
   const descendOpacity = useTransform(scrollYProgress, [0.02, 0.1], [0, 1]);
   const descendY = useTransform(scrollYProgress, [0.02, 0.1], [20, 0]);
-  // Hide descend text as we scroll further down (40-50%)
-  const descendExitOpacity = useTransform(scrollYProgress, [0.4, 0.5], [1, 0]);
+  const descendExitOpacity = useTransform(scrollYProgress, [0.1, 0.2], [1, 0]); // Fades out quickly for CTAs
 
   // Debug log to ensure HMR is working
   console.log("HeroSection rendered with CTA state:", showCTA);
 
   return (
-    <section ref={ref} className="relative h-[200vh] w-full">
+    <section ref={ref} className="relative h-[250vh] w-full">
       {/* Sticky Container for Hero Content */}
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
         
@@ -56,52 +55,54 @@ export default function HeroSection() {
         {/* Hero Content */}
         <motion.div 
           style={{ opacity: heroOpacity, scale: heroScale }}
-          className="relative z-10 text-center px-6 max-w-6xl mx-auto"
+          className="relative z-10 text-center px-6 max-w-6xl mx-auto flex flex-col items-center justify-center h-full"
         >
-          <p
-            className="text-[#0d46f2] tracking-[0.6em] text-sm mb-8 uppercase animate-pulse"
-            style={{ fontFamily: "'Orbitron', sans-serif" }}
-          >
-            Temporal Node Active
-          </p>
-          <h1
-            className="text-6xl md:text-8xl lg:text-[10rem] font-black leading-none mb-8 tracking-tighter"
-            style={{
-              fontFamily: "'Orbitron', sans-serif",
-              background: "linear-gradient(to bottom, #e2e8f0 30%, #475569 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            ECHOES OF LOGIC,
-            <br />
-            <span
-              className="italic"
-              style={{
-                background: "none",
-                WebkitBackgroundClip: "unset",
-                WebkitTextFillColor: "#0d46f2",
-              }}
+          <div className="mb-20"> {/* Wrapper to lift text up slightly */}
+            <p
+                className="text-[#0d46f2] tracking-[0.6em] text-xs mb-6 uppercase animate-pulse"
+                style={{ fontFamily: "'Orbitron', sans-serif" }}
             >
-              FORGED
-            </span>{" "}
-            IN TIME.
-          </h1>
-          <p className="text-xl md:text-2xl text-[#94a3b8] max-w-3xl mx-auto font-light leading-relaxed tracking-wide">
-            A cosmic repository for digital architecture. From the first
-            line of genesis to the complex lattices of tomorrow.
-          </p>
+                Temporal Node Active
+            </p>
+            <h1
+                className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight mb-6 tracking-tighter"
+                style={{
+                fontFamily: "'Orbitron', sans-serif",
+                background: "linear-gradient(to bottom, #e2e8f0 30%, #475569 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                }}
+            >
+                ECHOES OF LOGIC,
+                <br />
+                <span
+                className="italic"
+                style={{
+                    background: "none",
+                    WebkitBackgroundClip: "unset",
+                    WebkitTextFillColor: "#0d46f2",
+                }}
+                >
+                FORGED
+                </span>{" "}
+                IN TIME.
+            </h1>
+            <p className="text-lg text-[#94a3b8] max-w-2xl mx-auto font-light leading-relaxed tracking-wide">
+                A cosmic repository for digital architecture. From the first
+                line of genesis to the complex lattices of tomorrow.
+            </p>
+          </div>
 
-          {/* CTAs - Reveal based on state, not direct scroll map */}
+          {/* CTAs - Absolute Position at bottom */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={showCTA ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="mt-16 flex flex-col sm:flex-row gap-6 justify-center items-center"
+            className="absolute bottom-[15%] left-1/2 -translate-x-1/2 flex flex-col sm:flex-row gap-6 justify-center items-center w-full z-20"
           >
             <Link
               href="/register"
-              className="group relative px-12 py-5 bg-[#0d46f2] text-white text-xs tracking-[0.4em] uppercase overflow-hidden transition-all hover:pr-16"
+              className="group relative px-12 py-5 bg-[#0d46f2] text-white text-xs tracking-[0.4em] uppercase overflow-hidden transition-all hover:pr-16 shadow-[0_0_20px_rgba(13,70,242,0.3)] hover:shadow-[0_0_30px_rgba(13,70,242,0.5)]"
               style={{ fontFamily: "'Orbitron', sans-serif" }}
             >
               <span className="relative z-10">Step Into The Void</span>
@@ -111,7 +112,7 @@ export default function HeroSection() {
             </Link>
             <Link
               href="/changelog"
-              className="px-12 py-5 border border-white/20 text-[#94a3b8] text-xs tracking-[0.4em] uppercase hover:border-[#0d46f2] hover:text-white transition-all"
+              className="px-12 py-5 border border-white/20 text-[#94a3b8] text-xs tracking-[0.4em] uppercase hover:border-[#0d46f2] hover:text-white transition-all backdrop-blur-sm"
               style={{ fontFamily: "'Orbitron', sans-serif" }}
             >
               View Chronology
@@ -119,30 +120,17 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
 
-        {/* Start Scrolling / Descend Indicator - Moved further up to bottom-48 */}
+        {/* Start Scrolling / Descend Indicator */}
         <motion.div 
-          style={{ opacity: descendExitOpacity }} // Fade out as we go deep
-          className="absolute bottom-48 left-1/2 -translate-x-1/2" // Increased bottom spacing
+          style={{ opacity: descendExitOpacity }} // Fade out quickly
+          className="absolute bottom-12 left-1/2 -translate-x-1/2 z-0"
         >
-          {/* Default initial state (visible at top) */}
-          <motion.div 
-             initial={{ opacity: 1 }}
-             style={{ opacity: useTransform(scrollYProgress, [0, 0.02], [1, 0]) }}
-             className="flex flex-col items-center gap-2 text-[#94a3b8]/40"
-          >
-             <span className="text-[10px] uppercase tracking-[0.2em] animate-pulse">Scroll to Begin</span>
-             <span className="material-symbols-outlined text-sm animate-bounce">arrow_downward</span>
-          </motion.div>
-
-          {/* "Descend" Text - Replaces invalid scroll hint */}
           <motion.div 
              style={{ opacity: descendOpacity, y: descendY }}
              className="flex flex-col items-center gap-4"
           >
-            <span className="text-[12px] text-[#0d46f2] uppercase tracking-[0.5em] rotate-90 origin-left ml-4 font-bold border-l-2 border-[#0d46f2] pl-3">
-              Descend
-            </span>
-            <div className="w-px h-24 bg-gradient-to-b from-[#0d46f2] to-transparent" />
+             <span className="text-[10px] uppercase tracking-[0.2em] animate-pulse text-[#94a3b8]/60">Scroll to Begin</span>
+             <span className="material-symbols-outlined text-sm animate-bounce text-[#94a3b8]/60">arrow_downward</span>
           </motion.div>
         </motion.div>
       </div>

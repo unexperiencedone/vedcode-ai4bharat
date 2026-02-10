@@ -34,8 +34,8 @@ export default function StrataSection() {
     offset: ["start start", "end end"],
   });
 
-  // Heading Fade Out (at the end, approx 90-100% scroll)
-  const headingOpacity = useTransform(scrollYProgress, [0.9, 1], [1, 0]);
+  // Heading Fade Out (at the very end, 95-100% scroll)
+  const headingOpacity = useTransform(scrollYProgress, [0.95, 1], [1, 0]);
 
   return (
     <section ref={containerRef} className="relative bg-[#080b14]">
@@ -96,7 +96,7 @@ function TypingHeading({ text }: { text: string }) {
       variants={container}
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: "-100px" }}
+      viewport={{ once: true, margin: "-30%" }}
     >
       {letters.map((letter, index) => (
         <motion.span variants={child} key={index}>
