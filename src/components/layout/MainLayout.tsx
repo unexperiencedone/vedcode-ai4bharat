@@ -5,12 +5,13 @@ import { cn } from "@/lib/utils";
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isHome = pathname === "/";
+  const noPadding = ["/", "/login", "/register"];
+  const skipPadding = noPadding.includes(pathname);
 
   return (
     <main className={cn(
       "flex-1 flex flex-col",
-      !isHome && "pt-16"
+      !skipPadding && "pt-16"
     )}>
       {children}
     </main>
