@@ -160,3 +160,14 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-slate-200 to-slate-400;
   }
 }
+
+/* Landing page animations */
+@keyframes vortex-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; filter: blur(40px); }
+  50% { opacity: 0.8; filter: blur(60px); }
+}

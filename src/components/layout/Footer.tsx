@@ -4,6 +4,10 @@ import { usePathname } from "next/navigation"
 
 export function Footer() {
   const pathname = usePathname()
+  
+  const publicRoutes = ["/", "/login", "/register"];
+  if (publicRoutes.includes(pathname)) return null;
+
   return (
     <footer className="border-t border-border bg-background py-8 px-6 mt-auto">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6">
