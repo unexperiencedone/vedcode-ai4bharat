@@ -88,19 +88,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return false;
       }
     },
-    async session({ session }) {
-      if (session.user?.email) {
+    async jwt({ token, user, account }) {
+      if (user) {
+        // First sign-in: fetch full profile from DB
         const profile = await db.query.profiles.findFirst({
-          where: eq(profiles.email, session.user.email),
+          where: eq(profiles.email, user.email as string),
         });
         if (profile) {
-          // @ts-ignore
-          session.user.handle = profile.handle;
-          // @ts-ignore
-          session.user.role = profile.role;
-          // @ts-ignore
-          session.user.onboardingComplete = profile.onboardingComplete;
+          token.handle = profile.handle;
+          token.role = profile.role;
+          token.onboardingComplete = profile.onboardingComplete;
         }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        // @ts-ignore
+        session.user.handle = token.handle;
+        // @ts-ignore
+        session.user.role = token.role;
+        // @ts-ignore
+        session.user.onboardingComplete = token.onboardingComplete;
       }
       return session;
     },

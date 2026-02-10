@@ -276,7 +276,7 @@ export default function RegisterPage() {
           {/* OAuth Buttons */}
           <div className="grid grid-cols-2 gap-4">
             <button
-              onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
+              onClick={() => signIn("github", { callbackUrl: "/onboarding" })}
               className="flex items-center justify-center gap-3 rounded-lg border border-white/5 bg-[#111318] py-3.5 hover:bg-white/5 transition-colors group cursor-pointer"
             >
               <svg
@@ -291,7 +291,7 @@ export default function RegisterPage() {
               </span>
             </button>
             <button
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              onClick={() => signIn("google", { callbackUrl: "/onboarding" })}
               className="flex items-center justify-center gap-3 rounded-lg border border-white/5 bg-[#111318] py-3.5 hover:bg-white/5 transition-colors group cursor-pointer"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
