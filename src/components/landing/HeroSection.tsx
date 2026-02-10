@@ -34,6 +34,9 @@ export default function HeroSection() {
   // Hide descend text as we scroll further down (40-50%)
   const descendExitOpacity = useTransform(scrollYProgress, [0.4, 0.5], [1, 0]);
 
+  // Debug log to ensure HMR is working
+  console.log("HeroSection rendered with CTA state:", showCTA);
+
   return (
     <section ref={ref} className="relative h-[200vh] w-full">
       {/* Sticky Container for Hero Content */}
@@ -116,10 +119,10 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
 
-        {/* Start Scrolling / Descend Indicator - Moved up to bottom-32 */}
+        {/* Start Scrolling / Descend Indicator - Moved further up to bottom-48 */}
         <motion.div 
           style={{ opacity: descendExitOpacity }} // Fade out as we go deep
-          className="absolute bottom-32 left-1/2 -translate-x-1/2"
+          className="absolute bottom-48 left-1/2 -translate-x-1/2" // Increased bottom spacing
         >
           {/* Default initial state (visible at top) */}
           <motion.div 
@@ -127,7 +130,7 @@ export default function HeroSection() {
              style={{ opacity: useTransform(scrollYProgress, [0, 0.02], [1, 0]) }}
              className="flex flex-col items-center gap-2 text-[#94a3b8]/40"
           >
-             <span className="text-[10px] uppercase tracking-[0.2em] animate-pulse">Initialize Scroll</span>
+             <span className="text-[10px] uppercase tracking-[0.2em] animate-pulse">Scroll to Begin</span>
              <span className="material-symbols-outlined text-sm animate-bounce">arrow_downward</span>
           </motion.div>
 
