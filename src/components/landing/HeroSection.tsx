@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef } from "react";
-import { useScroll, useTransform, motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { useScroll, useTransform, motion, useMotionValueEvent } from "framer-motion";
 import Link from "next/link";
 
 export default function HeroSection() {
@@ -9,6 +9,16 @@ export default function HeroSection() {
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
+  });
+
+  const [showCTA, setShowCTA] = useState(false);
+
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    if (latest > 0.008 && !showCTA) {
+      setShowCTA(true);
+    } else if (latest <= 0.008 && showCTA) {
+      setShowCTA(false);
+    }
   });
 
   // Hero text fade out (0-50% scroll)
@@ -19,17 +29,10 @@ export default function HeroSection() {
   const bgOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   // "Descend" text typing effect (starts at 2% scroll)
-  // We'll mimic typing by revealing width or using simple opacity/translate for now
-  // For a true typing effect based on scroll, we can map string length, but standard reveal is smoother.
-  // Let's go with a reveal from bottom + opacity.
   const descendOpacity = useTransform(scrollYProgress, [0.02, 0.1], [0, 1]);
   const descendY = useTransform(scrollYProgress, [0.02, 0.1], [20, 0]);
   // Hide descend text as we scroll further down (40-50%)
   const descendExitOpacity = useTransform(scrollYProgress, [0.4, 0.5], [1, 0]);
-
-  // CTA Fade In (starts at 2% scroll)
-  const ctaOpacity = useTransform(scrollYProgress, [0.02, 0.1], [0, 1]);
-  const ctaY = useTransform(scrollYProgress, [0.02, 0.1], [20, 0]);
 
   return (
     <section ref={ref} className="relative h-[200vh] w-full">
@@ -86,9 +89,11 @@ export default function HeroSection() {
             line of genesis to the complex lattices of tomorrow.
           </p>
 
-          {/* CTAs - Reveal on scroll */}
+          {/* CTAs - Reveal based on state, not direct scroll map */}
           <motion.div 
-            style={{ opacity: ctaOpacity, y: ctaY }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={showCTA ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
             className="mt-16 flex flex-col sm:flex-row gap-6 justify-center items-center"
           >
             <Link
@@ -111,10 +116,10 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
 
-        {/* Start Scrolling / Descend Indicator */}
+        {/* Start Scrolling / Descend Indicator - Moved up to bottom-32 */}
         <motion.div 
           style={{ opacity: descendExitOpacity }} // Fade out as we go deep
-          className="absolute bottom-10 left-1/2 -translate-x-1/2"
+          className="absolute bottom-32 left-1/2 -translate-x-1/2"
         >
           {/* Default initial state (visible at top) */}
           <motion.div 
