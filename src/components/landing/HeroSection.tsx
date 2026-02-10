@@ -1,7 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useScroll, useTransform, motion, useMotionValueEvent } from "framer-motion";
+import {
+  useScroll,
+  useTransform,
+  motion,
+  useMotionValueEvent,
+} from "framer-motion";
 import Link from "next/link";
 
 export default function HeroSection() {
@@ -24,7 +29,7 @@ export default function HeroSection() {
   // Hero text fade out (starts later, 60-80% scroll)
   const heroOpacity = useTransform(scrollYProgress, [0.6, 0.8], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0.6, 0.8], [1, 0.9]);
-  
+
   // Background calming effect
   const bgOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0.2]); // Keep some bg visible
 
@@ -37,12 +42,11 @@ export default function HeroSection() {
   console.log("HeroSection rendered with CTA state:", showCTA);
 
   return (
-    <section ref={ref} className="relative h-[250vh] w-full">
+    <section ref={ref} className="relative h-[150vh] w-full">
       {/* Sticky Container for Hero Content */}
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
-        
         {/* Animated Background - Controlled by scroll */}
-        <motion.div 
+        <motion.div
           style={{ opacity: bgOpacity }}
           className="absolute inset-0 pointer-events-none z-0"
         >
@@ -53,48 +57,51 @@ export default function HeroSection() {
         </motion.div>
 
         {/* Hero Content */}
-        <motion.div 
+        <motion.div
           style={{ opacity: heroOpacity, scale: heroScale }}
           className="relative z-10 text-center px-6 max-w-6xl mx-auto flex flex-col items-center justify-center h-full"
         >
-          <div className="mb-20"> {/* Wrapper to lift text up slightly */}
+          <div className="mb-20">
+            {" "}
+            {/* Wrapper to lift text up slightly */}
             <p
-                className="text-[#0d46f2] tracking-[0.6em] text-xs mb-6 uppercase animate-pulse"
-                style={{ fontFamily: "'Orbitron', sans-serif" }}
+              className="text-[#0d46f2] tracking-[0.6em] text-xs mb-6 uppercase animate-pulse"
+              style={{ fontFamily: "'Orbitron', sans-serif" }}
             >
-                Temporal Node Active
+              Temporal Node Active
             </p>
             <h1
-                className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight mb-6 tracking-tighter"
-                style={{
+              className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight mb-6 tracking-tighter"
+              style={{
                 fontFamily: "'Orbitron', sans-serif",
-                background: "linear-gradient(to bottom, #e2e8f0 30%, #475569 100%)",
+                background:
+                  "linear-gradient(to bottom, #e2e8f0 30%, #475569 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
-                }}
+              }}
             >
-                ECHOES OF LOGIC,
-                <br />
-                <span
+              ECHOES OF LOGIC,
+              <br />
+              <span
                 className="italic"
                 style={{
-                    background: "none",
-                    WebkitBackgroundClip: "unset",
-                    WebkitTextFillColor: "#0d46f2",
+                  background: "none",
+                  WebkitBackgroundClip: "unset",
+                  WebkitTextFillColor: "#0d46f2",
                 }}
-                >
+              >
                 FORGED
-                </span>{" "}
-                IN TIME.
+              </span>{" "}
+              IN TIME.
             </h1>
             <p className="text-lg text-[#94a3b8] max-w-2xl mx-auto font-light leading-relaxed tracking-wide">
-                A cosmic repository for digital architecture. From the first
-                line of genesis to the complex lattices of tomorrow.
+              A cosmic repository for digital architecture. From the first line
+              of genesis to the complex lattices of tomorrow.
             </p>
           </div>
 
           {/* CTAs - Absolute Position at bottom */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={showCTA ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -121,16 +128,20 @@ export default function HeroSection() {
         </motion.div>
 
         {/* Start Scrolling / Descend Indicator */}
-        <motion.div 
+        <motion.div
           style={{ opacity: descendExitOpacity }} // Fade out quickly
           className="absolute bottom-12 left-1/2 -translate-x-1/2 z-0"
         >
-          <motion.div 
-             style={{ opacity: descendOpacity, y: descendY }}
-             className="flex flex-col items-center gap-4"
+          <motion.div
+            style={{ opacity: descendOpacity, y: descendY }}
+            className="flex flex-col items-center gap-4"
           >
-             <span className="text-[10px] uppercase tracking-[0.2em] animate-pulse text-[#94a3b8]/60">Scroll to Begin</span>
-             <span className="material-symbols-outlined text-sm animate-bounce text-[#94a3b8]/60">arrow_downward</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] animate-pulse text-[#94a3b8]/60">
+              Scroll to Begin
+            </span>
+            <span className="material-symbols-outlined text-sm animate-bounce text-[#94a3b8]/60">
+              arrow_downward
+            </span>
           </motion.div>
         </motion.div>
       </div>

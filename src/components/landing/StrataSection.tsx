@@ -96,7 +96,9 @@ function TypingHeading({ text }: { text: string }) {
       variants={container}
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: "-30%" }}
+      // Trigger when element reaches the top 30% of the viewport
+      // margin-bottom: -70% moves the bottom boundary up by 70%
+      viewport={{ once: true, margin: "0px 0px -70% 0px" }}
     >
       {letters.map((letter, index) => (
         <motion.span variants={child} key={index}>
