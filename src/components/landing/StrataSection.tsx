@@ -30,6 +30,7 @@ const strataCards = [
 export default function StrataSection({ handedOver = false }: { handedOver?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [showHeading, setShowHeading] = useState(false);
 
   // Determinisitc scroll mapping for h-[500vh] section
   const { scrollYProgress } = useScroll({
@@ -42,8 +43,20 @@ export default function StrataSection({ handedOver = false }: { handedOver?: boo
     // Card 0 marker @ 100vh relative. Hits 80% height when scroll = 20vh. Progress = 20/500 = 0.04
     // Card 1 marker @ 200vh relative. Hits 80% height when scroll = 120vh. Progress = 120/500 = 0.24
     // Card 2 marker @ 300vh relative. Hits 80% height when scroll = 220vh. Progress = 220/500 = 0.44
-    // Handover occurs via prop from next section, but we still clamp index
     
+    // Heading Entry @ 25% screen height. 
+    // Section starts @ 0 progress. Heading hits 25% height immediately? 
+    // No, section start is when section top hits viewport top. 
+    // So heading is already at 25% relative to section top at start?
+    // Actually the sticky/fixed layer is always at 25%.
+    // We want it to "arrive" as we enter the section.
+    
+    if (latest > 0.001) {
+      setShowHeading(true);
+    } else {
+      setShowHeading(false);
+    }
+
     if (latest < 0.04) {
       setActiveIndex(-1);
     } else if (latest < 0.24) {
@@ -65,7 +78,11 @@ export default function StrataSection({ handedOver = false }: { handedOver?: boo
         
         {/* Heading remains at 25% screen height */}
         <div className="mt-[25vh] z-20">
-          <TypingHeading text="STRUCTURAL STRATA" isExiting={handedOver} />
+          <TypingHeading 
+            text="STRUCTURAL STRATA" 
+            isExiting={handedOver} 
+            isVisible={showHeading}
+          />
         </div>
 
         {/* Cards settle in center */}
@@ -75,7 +92,7 @@ export default function StrataSection({ handedOver = false }: { handedOver?: boo
               <Card 
                 key={card.id} 
                 card={card} 
-                isActive={activeIndex === i && !handedOver} 
+                isActive={activeIndex === i && !handedOver && showHeading} 
               />
             ))}
           </div>
@@ -85,7 +102,7 @@ export default function StrataSection({ handedOver = false }: { handedOver?: boo
   );
 }
 
-function TypingHeading({ text, isExiting }: { text: string; isExiting: boolean }) {
+function TypingHeading({ text, isExiting, isVisible }: { text: string; isExiting: boolean; isVisible: boolean }) {
   const letters = text.split("");
   
   const container = {
@@ -119,8 +136,7 @@ function TypingHeading({ text, isExiting }: { text: string; isExiting: boolean }
       className="text-3xl md:text-4xl text-center tracking-[0.5em] text-[#94a3b8] uppercase font-bold overflow-hidden flex"
       variants={container}
       initial="hidden"
-      animate={isExiting ? "exit" : "visible"}
-      viewport={{ once: false, margin: "0px 0px -75% 0px" }} // Trigger at 25% height
+      animate={isExiting ? "exit" : isVisible ? "visible" : "hidden"}
     >
       {letters.map((letter, index) => (
         <motion.span variants={child} key={index}>
