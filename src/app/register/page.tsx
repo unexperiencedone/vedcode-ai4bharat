@@ -2,8 +2,49 @@
 
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Registration failed");
+        return;
+      }
+      // Auto sign-in after successful registration
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (result?.error) {
+        router.push("/login");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch {
+      setError("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="flex h-screen w-full flex-col lg:flex-row bg-[#0a0a0c] text-white overflow-hidden selection:bg-primary selection:text-white">
       {/* Left Side: Visual Experience */}
@@ -101,9 +142,15 @@ export default function RegisterPage() {
             </p>
           </div>
 
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
           <form
             className="flex flex-col gap-3"
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={handleSubmit}
           >
             {/* Full Name */}
             <div className="flex flex-col gap-2">
@@ -118,6 +165,9 @@ export default function RegisterPage() {
                   className="w-full bg-[#111318] border border-white/10 rounded-lg py-3 px-4 text-white placeholder:text-white/20 transition-all outline-none focus:border-primary focus:shadow-[0_0_0_1px_#0d46f2]"
                   placeholder="e.g. Julian Kane"
                   type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -132,9 +182,12 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <input
-                  className="w-full bg-[#111318] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-white/20 transition-all outline-none focus:border-primary focus:shadow-[0_0_0_1px_#0d46f2]"
+                  className="w-full bg-[#111318] border border-white/10 rounded-lg py-3 px-4 text-white placeholder:text-white/20 transition-all outline-none focus:border-primary focus:shadow-[0_0_0_1px_#0d46f2]"
                   placeholder="name@domain.com"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -149,9 +202,13 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <input
-                  className="w-full bg-[#111318] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-white/20 transition-all outline-none focus:border-primary focus:shadow-[0_0_0_1px_#0d46f2]"
+                  className="w-full bg-[#111318] border border-white/10 rounded-lg py-3 px-4 text-white placeholder:text-white/20 transition-all outline-none focus:border-primary focus:shadow-[0_0_0_1px_#0d46f2]"
                   placeholder="••••••••"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
                 />
               </div>
             </div>
@@ -182,13 +239,14 @@ export default function RegisterPage() {
             {/* CTA */}
             <button
               type="submit"
-              className="mt-1 w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 group border border-primary/50 shadow-[0_0_20px_rgba(13,70,242,0.15)]"
+              className="mt-1 w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 group border border-primary/50 shadow-[0_0_20px_rgba(13,70,242,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
             >
               <span
                 className="uppercase tracking-widest text-sm"
                 style={{ fontFamily: "monospace" }}
               >
-                Request Access
+                {loading ? "Processing..." : "Request Access"}
               </span>
               <svg
                 className="w-4 h-4 group-hover:translate-x-1 transition-transform"

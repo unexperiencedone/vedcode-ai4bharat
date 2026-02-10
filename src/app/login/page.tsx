@@ -2,8 +2,37 @@
 
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (result?.error) {
+        setError("Invalid email or password");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch {
+      setError("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="relative flex h-screen w-full overflow-hidden bg-[#0a0a0a] text-[#e2e2e2] selection:bg-primary selection:text-white">
       {/* Grain Overlay */}
@@ -31,7 +60,13 @@ export default function LoginPage() {
               <p className="text-[#e2e2e2]/60 font-medium">Secure System Access Required</p>
             </div>
 
-            <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+            {error && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="text-sm font-semibold tracking-wider text-[#e2e2e2]/80 uppercase" htmlFor="email">
                   Email Address
@@ -42,6 +77,9 @@ export default function LoginPage() {
                     id="email"
                     placeholder="user@archive.net"
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                   />
                   <div className="absolute inset-0 rounded-lg border border-white/5 pointer-events-none group-hover:border-white/10 transition-colors" />
                 </div>
@@ -62,6 +100,9 @@ export default function LoginPage() {
                     id="password"
                     placeholder="••••••••"
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
                   />
                   <div className="absolute inset-0 rounded-lg border border-white/5 pointer-events-none group-hover:border-white/10 transition-colors" />
                 </div>
@@ -69,9 +110,10 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full rounded-lg bg-primary py-3 text-sm font-bold tracking-[0.1em] text-white uppercase shadow-[0_4px_20px_rgba(13,70,242,0.3)] hover:shadow-[0_4px_25px_rgba(13,70,242,0.5)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+                disabled={loading}
+                className="w-full rounded-lg bg-primary py-3 text-sm font-bold tracking-[0.1em] text-white uppercase shadow-[0_4px_20px_rgba(13,70,242,0.3)] hover:shadow-[0_4px_25px_rgba(13,70,242,0.5)] hover:bg-primary/90 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Initialize Session
+                {loading ? "Connecting..." : "Initialize Session"}
               </button>
             </form>
 

@@ -14,8 +14,9 @@ export const logs = pgTable('logs', {
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
   clerkId: text("clerk_id").unique(), // Legacy, nullable now
-  authId: text("auth_id").unique(), // Google 'sub'
+  authId: text("auth_id").unique(), // OAuth provider ID
   email: text("email").unique(),
+  password: text("password"), // Hashed, nullable for OAuth-only users
   image: text("image"),
   name: text("name").notNull(),
   handle: text("handle").unique().notNull(),
