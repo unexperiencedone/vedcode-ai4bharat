@@ -63,13 +63,19 @@ export default function IngestionsSection({
       <div className="max-w-[1600px] mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial="hidden"
+            whileInView="visible"
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0 }
+            }}
             viewport={{ once: false, margin: "0px 0px -70% 0px" }} // Exactly 30%
             transition={{ duration: 0.8, ease: "easeOut" }}
             onAnimationComplete={(definition) => {
-              if (definition === "initial") return; // Skip initial hidden state
-              setHeadingArrived(true);
+              // Using named variants prevents ambiguity with initial/animate states
+              if (definition === "visible") {
+                setHeadingArrived(true);
+              }
             }}
             onViewportLeave={() => setHeadingArrived(false)}
           >
@@ -87,8 +93,12 @@ export default function IngestionsSection({
             </h2>
           </motion.div>
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={headingArrived ? { opacity: 1 } : { opacity: 0 }}
+            initial="hidden"
+            animate={headingArrived ? "visible" : "hidden"}
+            variants={{
+              hidden: { opacity: 0 },
+              visible: { opacity: 1 }
+            }}
             transition={{ duration: 0.8, delay: 0.4 }} // Delayed after cards start
           >
             <Link
@@ -130,8 +140,12 @@ function IngestionCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -50 }} // Slide in from Left
-      animate={startAnimation ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
+      initial="hidden"
+      animate={startAnimation ? "visible" : "hidden"}
+      variants={{
+        hidden: { opacity: 0, x: -50 },
+        visible: { opacity: 1, x: 0 }
+      }}
       transition={{
         duration: 0.6,
         delay: index * 0.15, // Stagger effect after heading
