@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function RegisterPage() {
   return (
-    <div className="flex min-h-screen w-full flex-col lg:flex-row bg-[#0a0a0c] text-white overflow-hidden selection:bg-primary selection:text-white">
+    <div className="flex h-screen w-full flex-col lg:flex-row bg-[#0a0a0c] text-white overflow-hidden selection:bg-primary selection:text-white">
       {/* Left Side: Visual Experience */}
       <div className="relative hidden lg:flex lg:w-1/2 flex-col justify-between p-12 overflow-hidden border-r border-white/5">
         {/* Abstract Background */}
@@ -67,7 +67,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Side: Registration Form */}
-      <div className="flex-1 flex flex-col justify-center items-center p-6 md:p-12 lg:p-24 bg-[#0a0a0c] relative">
+      <div className="flex-1 flex flex-col justify-center items-center p-6 md:p-8 lg:p-12 bg-[#0a0a0c] relative">
         {/* Mobile Header */}
         <div className="lg:hidden absolute top-8 left-8 flex items-center gap-3">
           <div className="w-6 h-6 bg-primary flex items-center justify-center rounded-sm">
@@ -91,7 +91,7 @@ export default function RegisterPage() {
           </h2>
         </div>
 
-        <div className="w-full max-w-[440px] flex flex-col gap-8">
+        <div className="w-full max-w-[440px] flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <h2 className="text-3xl font-bold tracking-tight text-white">
               Request Access
@@ -102,7 +102,7 @@ export default function RegisterPage() {
           </div>
 
           <form
-            className="flex flex-col gap-5"
+            className="flex flex-col gap-3"
             onSubmit={(e) => e.preventDefault()}
           >
             {/* Full Name */}
@@ -115,7 +115,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <input
-                  className="w-full bg-[#111318] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-white/20 transition-all outline-none focus:border-primary focus:shadow-[0_0_0_1px_#0d46f2]"
+                  className="w-full bg-[#111318] border border-white/10 rounded-lg py-3 px-4 text-white placeholder:text-white/20 transition-all outline-none focus:border-primary focus:shadow-[0_0_0_1px_#0d46f2]"
                   placeholder="e.g. Julian Kane"
                   type="text"
                 />
@@ -157,7 +157,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Terms */}
-            <div className="flex items-start gap-3 px-1 py-2">
+            <div className="flex items-start gap-3 px-1 py-1">
               <input
                 className="mt-1 rounded-sm bg-[#111318] border-white/20 text-primary focus:ring-primary"
                 id="terms"
@@ -182,7 +182,7 @@ export default function RegisterPage() {
             {/* CTA */}
             <button
               type="submit"
-              className="mt-2 w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 group border border-primary/50 shadow-[0_0_20px_rgba(13,70,242,0.15)]"
+              className="mt-1 w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 group border border-primary/50 shadow-[0_0_20px_rgba(13,70,242,0.15)]"
             >
               <span
                 className="uppercase tracking-widest text-sm"
@@ -261,7 +261,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Footer Link */}
-          <div className="flex items-center justify-center gap-2 pt-4 border-t border-white/5">
+          <div className="flex items-center justify-center gap-2 pt-3 border-t border-white/5">
             <span className="text-sm text-[#e2e2e2]/40">Already a member?</span>
             <Link
               href="/login"

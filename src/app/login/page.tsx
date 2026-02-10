@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <div className="relative flex min-h-screen w-full overflow-hidden bg-[#0a0a0a] text-[#e2e2e2] selection:bg-primary selection:text-white">
+    <div className="relative flex h-screen w-full overflow-hidden bg-[#0a0a0a] text-[#e2e2e2] selection:bg-primary selection:text-white">
       {/* Grain Overlay */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
@@ -13,7 +13,7 @@ export default function LoginPage() {
 
       <div className="flex w-full">
         {/* Left Side: Login Form */}
-        <div className="z-10 flex w-full flex-col justify-between p-8 lg:w-1/2 xl:p-16">
+        <div className="z-10 flex w-full flex-col justify-between p-6 lg:w-1/2 xl:p-10">
           {/* Header */}
           <header className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-white shadow-[0_0_15px_rgba(13,70,242,0.4)]">
@@ -25,20 +25,20 @@ export default function LoginPage() {
           </header>
 
           {/* Form Section */}
-          <div className="mx-auto flex w-full max-w-md flex-col justify-center py-12">
-            <div className="mb-10">
+          <div className="mx-auto flex w-full max-w-md flex-col justify-center py-4">
+            <div className="mb-6">
               <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Awaiting Credentials</h1>
               <p className="text-[#e2e2e2]/60 font-medium">Secure System Access Required</p>
             </div>
 
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
               <div className="space-y-2">
                 <label className="text-sm font-semibold tracking-wider text-[#e2e2e2]/80 uppercase" htmlFor="email">
                   Email Address
                 </label>
                 <div className="relative group">
                   <input
-                    className="w-full rounded-lg border-none bg-[#1a1c23] p-4 text-white placeholder:text-[#e2e2e2]/30 focus:ring-2 focus:ring-primary transition-all duration-300 outline-none"
+                    className="w-full rounded-lg border-none bg-[#1a1c23] py-3 px-4 text-white placeholder:text-[#e2e2e2]/30 focus:ring-2 focus:ring-primary transition-all duration-300 outline-none"
                     id="email"
                     placeholder="user@archive.net"
                     type="email"
@@ -58,7 +58,7 @@ export default function LoginPage() {
                 </div>
                 <div className="relative group">
                   <input
-                    className="w-full rounded-lg border-none bg-[#1a1c23] p-4 text-white placeholder:text-[#e2e2e2]/30 focus:ring-2 focus:ring-primary transition-all duration-300 outline-none"
+                    className="w-full rounded-lg border-none bg-[#1a1c23] py-3 px-4 text-white placeholder:text-[#e2e2e2]/30 focus:ring-2 focus:ring-primary transition-all duration-300 outline-none"
                     id="password"
                     placeholder="••••••••"
                     type="password"
@@ -69,14 +69,14 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full rounded-lg bg-primary py-4 text-sm font-bold tracking-[0.1em] text-white uppercase shadow-[0_4px_20px_rgba(13,70,242,0.3)] hover:shadow-[0_4px_25px_rgba(13,70,242,0.5)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+                className="w-full rounded-lg bg-primary py-3 text-sm font-bold tracking-[0.1em] text-white uppercase shadow-[0_4px_20px_rgba(13,70,242,0.3)] hover:shadow-[0_4px_25px_rgba(13,70,242,0.5)] hover:bg-primary/90 transition-all active:scale-[0.98]"
               >
                 Initialize Session
               </button>
             </form>
 
             {/* Divider */}
-            <div className="relative my-10 flex items-center py-5">
+            <div className="relative my-5 flex items-center py-2">
               <div className="flex-grow border-t border-white/5" />
               <span className="mx-4 flex-shrink-0 text-xs font-bold tracking-widest text-[#e2e2e2]/30 uppercase">Connect via Network</span>
               <div className="flex-grow border-t border-white/5" />
