@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { CommandHeader } from "./CommandHeader";
 import { ClusterRail } from "./ClusterRail";
-import { TabStrip } from "./TabStrip";
 import { SystemFooter } from "./SystemFooter";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +24,6 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 flex flex-col overflow-hidden relative">
           {/* Background Grid Pattern */}
           <div className="absolute inset-0 bg-[radial-gradient(#3c83f6_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.03] pointer-events-none" />
-
-          {/* Tab System */}
-          <TabStrip />
 
           {/* Breadcrumb / Path */}
           <div className="px-8 py-3 flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground/20 border-b border-white/5 z-10 bg-background/50 backdrop-blur-sm">
