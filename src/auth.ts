@@ -89,10 +89,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
     async jwt({ token, user, trigger, session }) {
-      if (user) {
-        // First sign-in: fetch full profile from DB
+      // Always refresh profile data from DB to keep session in sync
+      if (token.email) {
         const profile = await db.query.profiles.findFirst({
-          where: eq(profiles.email, user.email as string),
+          where: eq(profiles.email, token.email as string),
         });
         if (profile) {
           token.handle = profile.handle;
