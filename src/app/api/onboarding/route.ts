@@ -13,24 +13,31 @@ export async function PUT(req: Request) {
 
     const data = await req.json();
 
+    // Build update object — only include image if user uploaded one
+    const updateData: Record<string, any> = {
+      name: data.name,
+      handle: data.handle,
+      bio: data.bio,
+      linkedin: data.linkedin,
+      github: data.github,
+      codingPhilosophy: data.codingPhilosophy,
+      interests: data.interests,
+      hobbies: data.hobbies,
+      primaryOs: data.primaryOs,
+      preferredIde: data.preferredIde,
+      hardwareSetup: data.hardwareSetup,
+      themePreference: data.themePreference,
+      onboardingComplete: true,
+    };
+
+    // Only overwrite image if user uploaded a new one during onboarding
+    if (data.image) {
+      updateData.image = data.image;
+    }
+
     await db
       .update(profiles)
-      .set({
-        name: data.name,
-        handle: data.handle,
-        bio: data.bio,
-        image: data.image,
-        linkedin: data.linkedin,
-        github: data.github,
-        codingPhilosophy: data.codingPhilosophy,
-        interests: data.interests,
-        hobbies: data.hobbies,
-        primaryOs: data.primaryOs,
-        preferredIde: data.preferredIde,
-        hardwareSetup: data.hardwareSetup,
-        themePreference: data.themePreference,
-        onboardingComplete: true,
-      })
+      .set(updateData)
       .where(eq(profiles.email, session.user.email));
 
     return NextResponse.json({ success: true });
