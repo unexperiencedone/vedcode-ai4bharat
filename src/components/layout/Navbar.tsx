@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Search } from "lucide-react"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 
-import { UserMenu } from "@/components/auth/UserMenu"
-import { SignInButton } from "@/components/auth/SignInButton"
+import { UserMenu } from "@/components/auth/UserMenu";
+import { SignInButton } from "@/components/auth/SignInButton";
 
 interface NavbarProps {
   user?: {
-    name?: string | null
-    email?: string | null
-    image?: string | null
-  }
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
 }
 
 export function Navbar({ user }: NavbarProps) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   const navItems = [
     { name: "Joint Works", href: "/dashboard" },
@@ -26,10 +26,17 @@ export function Navbar({ user }: NavbarProps) {
     { name: "The Atelier", href: "/atelier" },
     { name: "Guild Hall", href: "/guild-hall" },
     { name: "Skill Tree", href: "/skill-tree" },
-  ]
+  ];
 
-  const publicRoutes = ["/", "/login", "/register"];
-  if (publicRoutes.includes(pathname)) return null;
+  const landingRoutes = [
+    "/",
+    "/login",
+    "/register",
+    "/onboarding",
+    "/manifesto",
+    "/changelog",
+  ];
+  if (!landingRoutes.includes(pathname)) return null;
 
   return (
     <nav className="fixed top-0 w-full z-50 h-16 border-b border-border/10 bg-background/80 backdrop-blur-md">
@@ -55,7 +62,7 @@ export function Navbar({ user }: NavbarProps) {
                   "transition-colors pb-5 mt-5 border-b-2",
                   pathname === item.href
                     ? "text-foreground border-primary"
-                    : "text-muted-foreground border-transparent hover:text-foreground hover:border-border"
+                    : "text-muted-foreground border-transparent hover:text-foreground hover:border-border",
                 )}
               >
                 {item.name}
@@ -70,18 +77,18 @@ export function Navbar({ user }: NavbarProps) {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             SYSTEM OPERATIONAL
           </div>
-          
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground rounded-full">
-             <Search className="w-5 h-5" />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground rounded-full"
+          >
+            <Search className="w-5 h-5" />
           </Button>
 
-          {user ? (
-            <UserMenu user={user} />
-          ) : (
-            <SignInButton />
-          )}
+          {user ? <UserMenu user={user} /> : <SignInButton />}
         </div>
       </div>
     </nav>
-  )
+  );
 }

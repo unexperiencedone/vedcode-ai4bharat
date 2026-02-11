@@ -20,7 +20,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
 
   // Step 1 fields
   const [name, setName] = useState("");
@@ -46,7 +46,7 @@ export default function OnboardingPage() {
 
   const toggleInterest = (name: string) => {
     setInterests((prev) =>
-      prev.includes(name) ? prev.filter((i) => i !== name) : [...prev, name]
+      prev.includes(name) ? prev.filter((i) => i !== name) : [...prev, name],
     );
   };
 
@@ -73,6 +73,11 @@ export default function OnboardingPage() {
         }),
       });
       if (res.ok) {
+        // Force session update so middleware sees onboardingComplete = true
+        await update({
+          onboardingComplete: true,
+          handle: handle,
+        });
         router.push("/dashboard");
       }
     } catch (error) {
@@ -104,7 +109,8 @@ export default function OnboardingPage() {
           <div
             className="absolute inset-0"
             style={{
-              backgroundImage: "radial-gradient(#ffffff10 1px, transparent 1px)",
+              backgroundImage:
+                "radial-gradient(#ffffff10 1px, transparent 1px)",
               backgroundSize: "40px 40px",
             }}
           />
@@ -839,9 +845,7 @@ export default function OnboardingPage() {
                             <p className="text-[#F5F5F7]/40 text-xs uppercase">
                               Full Name
                             </p>
-                            <p className="text-xl font-medium">
-                              {name || "—"}
-                            </p>
+                            <p className="text-xl font-medium">{name || "—"}</p>
                           </div>
                         </div>
                       </div>
@@ -940,9 +944,7 @@ export default function OnboardingPage() {
                           className="w-full py-5 px-8 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-[0_10px_40px_rgba(13,70,242,0.3)] transition-all transform hover:-translate-y-1 active:translate-y-0 mb-6 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <span>
-                            {loading
-                              ? "Syncing..."
-                              : "Initialize Final Sync"}
+                            {loading ? "Syncing..." : "Initialize Final Sync"}
                           </span>
                           <span className="material-symbols-outlined">
                             rocket_launch

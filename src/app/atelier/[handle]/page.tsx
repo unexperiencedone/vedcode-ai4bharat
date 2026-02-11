@@ -54,10 +54,8 @@ export default function AtelierPage({ params }: { params: Promise<{ handle: stri
   if (loading) return <div className="min-h-screen flex items-center justify-center text-cyan-500 font-mono">INITIALIZING ATELIER...</div>;
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-cyan-500/30">
-
-
-      <div className="pt-24 pb-20 px-6 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
+    <div className="h-full bg-background selection:bg-cyan-500/30 overflow-auto">
+      <div className="py-12 px-8 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Left Column: Technical Context (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-12">
           

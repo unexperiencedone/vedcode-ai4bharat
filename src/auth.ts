@@ -88,7 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return false;
       }
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         // First sign-in: fetch full profile from DB
         const profile = await db.query.profiles.findFirst({
@@ -100,6 +100,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.onboardingComplete = profile.onboardingComplete;
         }
       }
+
+      if (trigger === "update" && session) {
+        token.onboardingComplete = session.onboardingComplete;
+        if (session.handle) token.handle = session.handle;
+        if (session.role) token.role = session.role;
+      }
+
       return token;
     },
     async session({ session, token }) {

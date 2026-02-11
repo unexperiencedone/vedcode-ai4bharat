@@ -21,6 +21,9 @@ export const metadata: Metadata = {
     "A high-end, minimalist developer archive and collaborative portfolio.",
 };
 
+import { TabProvider } from "@/components/providers/TabProvider";
+import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
+import { Providers } from "@/components/providers/Providers";
 import { auth } from "@/auth";
 
 export default async function RootLayout({
@@ -35,9 +38,15 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen flex flex-col selection:bg-primary selection:text-primary-foreground transition-colors duration-300`}
       >
-        <Navbar user={session?.user} />
-        <MainLayout>{children}</MainLayout>
-        <Footer />
+        <Providers>
+          <TabProvider>
+            <Navbar user={session?.user} />
+            <WorkspaceLayout>
+              <MainLayout>{children}</MainLayout>
+            </WorkspaceLayout>
+            <Footer />
+          </TabProvider>
+        </Providers>
       </body>
     </html>
   );

@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation"
 export function Footer() {
   const pathname = usePathname()
   
-  const publicRoutes = ["/", "/login", "/register"];
-  if (publicRoutes.includes(pathname)) return null;
+  const landingRoutes = ["/", "/login", "/register", "/onboarding", "/manifesto", "/changelog"];
+  if (!landingRoutes.includes(pathname)) return null;
 
   return (
     <footer className="border-t border-border bg-background py-8 px-6 mt-auto">

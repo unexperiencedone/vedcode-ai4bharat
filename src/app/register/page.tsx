@@ -148,10 +148,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form
-            className="flex flex-col gap-3"
-            onSubmit={handleSubmit}
-          >
+          <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
             {/* Full Name */}
             <div className="flex flex-col gap-2">
               <label
