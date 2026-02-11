@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { profiles } from "@/db/schema";
+import { profiles, logs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
@@ -39,6 +39,15 @@ export async function PUT(req: Request) {
       .update(profiles)
       .set(updateData)
       .where(eq(profiles.email, session.user.email));
+
+    // Log the profile creation event for the Live Feed
+    await db.insert(logs).values({
+      action: "MEMBER_JOIN",
+      cluster: 1,
+      author: data.name || session.user.name || "Unknown",
+      target: `@${data.handle}`,
+      message: `Welcome to The Archive, @${data.handle}.`,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
