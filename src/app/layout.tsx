@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
+
 import { Footer } from "@/components/layout/Footer";
 import { MainLayout } from "@/components/layout/MainLayout";
 
@@ -24,14 +24,13 @@ export const metadata: Metadata = {
 import { TabProvider } from "@/components/providers/TabProvider";
 import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { Providers } from "@/components/providers/Providers";
-import { auth } from "@/auth";
 
-export default async function RootLayout({
+
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
 
   return (
     <html lang="en" className="dark">
@@ -40,7 +39,6 @@ export default async function RootLayout({
       >
         <Providers>
           <TabProvider>
-            <Navbar user={session?.user} />
             <WorkspaceLayout>
               <MainLayout>{children}</MainLayout>
             </WorkspaceLayout>
