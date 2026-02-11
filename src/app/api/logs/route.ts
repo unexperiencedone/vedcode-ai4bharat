@@ -9,7 +9,7 @@ export async function GET() {
       .select()
       .from(logs)
       .orderBy(desc(logs.timestamp))
-      .limit(50); // Fetch last 50 logs for the feed
+      .limit(50);
 
     return NextResponse.json(recentLogs);
   } catch (error) {
