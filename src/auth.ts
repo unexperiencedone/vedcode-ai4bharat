@@ -98,6 +98,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.handle = profile.handle;
           token.role = profile.role;
           token.onboardingComplete = profile.onboardingComplete;
+          token.image = profile.image;
         }
       }
 
@@ -105,6 +106,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.onboardingComplete = session.onboardingComplete;
         if (session.handle) token.handle = session.handle;
         if (session.role) token.role = session.role;
+        if (session.image) token.image = session.image;
       }
 
       return token;
@@ -117,6 +119,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.role = token.role;
         // @ts-ignore
         session.user.onboardingComplete = token.onboardingComplete;
+        // @ts-ignore
+        session.user.image = token.image;
       }
       return session;
     },

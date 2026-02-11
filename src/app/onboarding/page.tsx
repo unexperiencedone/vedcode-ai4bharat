@@ -77,6 +77,7 @@ export default function OnboardingPage() {
         await update({
           onboardingComplete: true,
           handle: handle,
+          image: image,
         });
         router.push("/dashboard");
       }
