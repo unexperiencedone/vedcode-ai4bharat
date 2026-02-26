@@ -35,6 +35,14 @@ export const profiles = pgTable("profiles", {
   preferredIde: text("preferred_ide"), // VS Code, JetBrains, Neovim
   hardwareSetup: text("hardware_setup"), // Free-text
   themePreference: text("theme_preference"), // Midnight, Bone, Contrast
+  // New Atelier UI fields
+  location: text("location"),
+  yearsActive: integer("years_active").default(0),
+  commitCount: integer("commit_count").default(0),
+  prCount: integer("pr_count").default(0),
+  twitter: text("twitter"),
+  instagram: text("instagram"),
+  journalEnabled: boolean("journal_enabled").default(false),
 });
 
 export const snippets = pgTable("snippets", {
@@ -64,6 +72,92 @@ export const assets = pgTable("assets", {
 export const snippetRelations = relations(snippets, ({ one }) => ({
   author: one(profiles, {
     fields: [snippets.authorId],
+    references: [profiles.id],
+  }),
+}));
+
+export const portfolioWorks = pgTable("portfolio_works", {
+  id: serial("id").primaryKey(),
+  profileId: uuid("profile_id").references(() => profiles.id).notNull(),
+  type: text("type").notNull(), // 'ENGINEERING', 'ATELIER', 'WRITING', '3D', 'PHOTOGRAPHY', 'WEBGL'
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category"), // e.g., '3D / Blender', 'Photography', 'Experiment'
+  imageUrl: text("imageUrl"),
+  link: text("link"),
+  featured: boolean("featured").default(false),
+  metadata: jsonb("metadata").default({}), // stars, difficulty, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const journals = pgTable("journals", {
+  id: serial("id").primaryKey(),
+  profileId: uuid("profile_id").references(() => profiles.id).notNull(),
+  title: text("title").notNull(),
+  content: text("content"),
+  preview: text("preview"),
+  readTime: text("read_time"), // e.g. '5 min read'
+  featured: boolean("featured").default(false),
+  publishedAt: timestamp("published_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const portfolioWorksRelations = relations(portfolioWorks, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [portfolioWorks.profileId],
+    references: [profiles.id],
+  }),
+}));
+
+export const journalRelations = relations(journals, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [journals.profileId],
+    references: [profiles.id],
+  }),
+}));
+export const projects = pgTable("projects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  archiveId: text("archive_id").unique().notNull(), // e.g., ARCHIVE-772-X
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("IN_DESIGN"), // LIVE, IN_DESIGN, PAUSED
+  category: text("category"), // AI & ML, Infrastructure, etc.
+  tags: jsonb("tags").default([]), // ["REACT", "PYTHON"]
+  imageUrl: text("image_url"),
+  githubRepo: text("github_repo"),
+  
+  // Metrics
+  activeModules: integer("active_modules").default(0),
+  liveDeployments: integer("live_deployments").default(0),
+  pendingReview: integer("pending_review").default(0),
+  storageCapacity: integer("storage_capacity").default(0),
+  
+  // System Info
+  uptime: text("uptime"),
+  latency: text("latency"),
+  load: text("load"),
+  version: text("version").default("v0.1.0"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const projectMembers = pgTable("project_members", {
+  projectId: uuid("project_id").references(() => projects.id).notNull(),
+  profileId: uuid("profile_id").references(() => profiles.id).notNull(),
+});
+
+export const projectsRelations = relations(projects, ({ many }) => ({
+  members: many(projectMembers),
+}));
+
+export const projectMembersRelations = relations(projectMembers, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectMembers.projectId],
+    references: [projects.id],
+  }),
+  profile: one(profiles, {
+    fields: [projectMembers.profileId],
     references: [profiles.id],
   }),
 }));

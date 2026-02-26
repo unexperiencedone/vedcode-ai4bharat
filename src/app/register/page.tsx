@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -49,9 +50,20 @@ export default function RegisterPage() {
     <div className="flex h-screen w-full flex-col lg:flex-row bg-[#0a0a0c] text-white overflow-hidden selection:bg-primary selection:text-white">
       {/* Left Side: Visual Experience */}
       <div className="relative hidden lg:flex lg:w-1/2 flex-col justify-between p-12 overflow-hidden border-r border-white/5">
-        {/* Abstract Background */}
-        <div className="absolute inset-0 z-0">
-          <div className="h-full w-full bg-gradient-to-br from-[#0a0a0c] via-[#111318] to-primary/10" />
+        {/* Base Image Layer */}
+        <div className="absolute inset-0 z-0 opacity-90">
+          <Image 
+            src="/register.jpeg" 
+            alt="The Archive Registration" 
+            fill 
+            className="object-cover contrast-110 saturate-90"
+            priority
+          />
+        </div>
+
+        {/* Abstract Background Overlay */}
+        <div className="absolute inset-0 z-1">
+          <div className="h-full w-full bg-gradient-to-br from-[#0a0a0c] via-[#111318]/80 to-primary/10" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-transparent to-[#0a0a0c]/20" />
           {/* Tech Grid */}
           <div

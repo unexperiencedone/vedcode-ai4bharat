@@ -49,17 +49,17 @@
 
 :root {
   --radius: 0.25rem;
-  
+
   /* Midnight Slate (Backgrounds) */
   --background: #f5f7f8;
   --foreground: #101722;
-  
+
   /* UI Elements */
   --card: #ffffff;
   --card-foreground: #101722;
   --popover: #ffffff;
   --popover-foreground: #101722;
-  --primary: #3B82F6; /* Electric Cobalt */
+  --primary: #3b82f6; /* Electric Cobalt */
   --primary-foreground: #ffffff;
   --secondary: #e2e8f0;
   --secondary-foreground: #101722;
@@ -71,66 +71,66 @@
   --destructive-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #3B82F6;
-  
+  --ring: #3b82f6;
+
   /* Chart Colors */
-  --chart-1: #3B82F6;
+  --chart-1: #3b82f6;
   --chart-2: #64748b;
   --chart-3: #101722;
   --chart-4: #94a3b8;
   --chart-5: #cbd5e1;
-  
+
   /* Sidebar */
   --sidebar: #f5f7f8;
   --sidebar-foreground: #101722;
-  --sidebar-primary: #3B82F6;
+  --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f1f5f9;
   --sidebar-accent-foreground: #101722;
   --sidebar-border: #e2e8f0;
-  --sidebar-ring: #3B82F6;
+  --sidebar-ring: #3b82f6;
 }
 
 .dark {
   /* Midnight Slate Base */
-  --background: #0B0E11; /* Deep Charcoal */
-  --foreground: #E4E4DE; /* Bone White */
-  
+  --background: #0b0e11; /* Deep Charcoal */
+  --foreground: #e4e4de; /* Bone White */
+
   /* UI Elements */
   --card: #162032;
-  --card-foreground: #E4E4DE;
+  --card-foreground: #e4e4de;
   --popover: #162032;
-  --popover-foreground: #E4E4DE;
-  --primary: #3B82F6; /* Electric Cobalt */
+  --popover-foreground: #e4e4de;
+  --primary: #3b82f6; /* Electric Cobalt */
   --primary-foreground: #ffffff;
   --secondary: #1e293b;
-  --secondary-foreground: #E4E4DE;
+  --secondary-foreground: #e4e4de;
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
   --accent: #1e293b;
-  --accent-foreground: #E4E4DE;
+  --accent-foreground: #e4e4de;
   --destructive: #7f1d1d;
-  --destructive-foreground: #E4E4DE;
+  --destructive-foreground: #e4e4de;
   --border: #1e293b; /* Subtle Slate */
   --input: #1e293b;
-  --ring: #3B82F6;
-  
+  --ring: #3b82f6;
+
   /* Chart Colors */
-  --chart-1: #3B82F6;
+  --chart-1: #3b82f6;
   --chart-2: #475569;
-  --chart-3: #E4E4DE;
+  --chart-3: #e4e4de;
   --chart-4: #64748b;
   --chart-5: #94a3b8;
-  
+
   /* Sidebar */
-  --sidebar: #0B0E11;
-  --sidebar-foreground: #E4E4DE;
-  --sidebar-primary: #3B82F6;
+  --sidebar: #0b0e11;
+  --sidebar-foreground: #e4e4de;
+  --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #162032;
-  --sidebar-accent-foreground: #E4E4DE;
+  --sidebar-accent-foreground: #e4e4de;
   --sidebar-border: #1e293b;
-  --sidebar-ring: #3B82F6;
+  --sidebar-ring: #3b82f6;
 }
 
 @layer base {
@@ -144,14 +144,20 @@
 
 @layer utilities {
   .glass-panel {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(26, 30, 38, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(245, 245, 245, 0.08);
   }
 
+  .mono-text {
+    font-family: "JetBrains Mono", var(--font-geist-mono), monospace;
+  }
+
+
   .bg-grid-pattern {
-    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
     background-size: 40px 40px;
   }
@@ -159,15 +165,48 @@
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-slate-200 to-slate-400;
   }
+
+  .glass-card {
+    background: rgba(22, 27, 34, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .terminal-text {
+    font-family: var(--font-geist-mono), "JetBrains Mono", monospace;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #21262d;
+    border-radius: 10px;
+  }
 }
 
 /* Landing page animations */
 @keyframes vortex-spin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; filter: blur(40px); }
-  50% { opacity: 0.8; filter: blur(60px); }
+  0%,
+  100% {
+    opacity: 0.4;
+    filter: blur(40px);
+  }
+  50% {
+    opacity: 0.8;
+    filter: blur(60px);
+  }
 }

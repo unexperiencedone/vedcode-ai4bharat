@@ -26,11 +26,11 @@ export function UserMenu({ user }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full overflow-hidden border border-white/10">
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full overflow-hidden border border-white/10 bg-background shadow-inner">
           <img
             src={user.image || `https://api.dicebear.com/9.x/avataaars/svg?seed=${user.email}`}
             alt={user.name || "User"}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover grayscale-0 opacity-100 relative z-10"
           />
         </Button>
       </DropdownMenuTrigger>
