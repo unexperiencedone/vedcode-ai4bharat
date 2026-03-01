@@ -161,3 +161,21 @@ export const projectMembersRelations = relations(projectMembers, ({ one }) => ({
     references: [profiles.id],
   }),
 }));
+
+// VedaCode MVP Tables
+
+export const memoryLogs = pgTable("memory_log", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").references(() => profiles.id).notNull(),
+  keyword: text("keyword").notNull(),
+  context: jsonb("context"), // e.g. snippet of where it was used
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  strengthScore: integer("strength_score").default(100), // VedaCode's forgetting decay
+});
+
+export const projectFiles = pgTable("project_files", {
+  id: serial("file_id").primaryKey(),
+  userId: uuid("user_id").references(() => profiles.id).notNull(),
+  filePath: text("file_path").notNull(),
+  fileContent: text("file_content").notNull(),
+});

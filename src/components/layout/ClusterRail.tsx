@@ -9,7 +9,10 @@ import {
   PenTool, 
   FlaskConical, 
   Wrench, 
-  Settings 
+  Settings,
+  BookOpen,
+  Compass,
+  ShieldAlert
 } from "lucide-react";
 
 export function ClusterRail() {
@@ -17,6 +20,9 @@ export function ClusterRail() {
 
   const clusters = [
     { name: "Projects", icon: Grid, href: "/", active: pathname === "/" },
+    { name: "Explore", icon: Compass, href: "/explore", active: pathname.startsWith("/explore") },
+    { name: "Learn", icon: BookOpen, href: "/learn", active: pathname.startsWith("/learn") },
+    { name: "Guard", icon: ShieldAlert, href: "/guard", active: pathname.startsWith("/guard") },
     { name: "Vault", icon: Lock, href: "/vault", active: pathname.startsWith("/vault") },
     { name: "Atelier", icon: PenTool, href: "/atelier", active: pathname.startsWith("/atelier") },
     { name: "Lab", icon: FlaskConical, href: "/skill-tree", active: pathname.startsWith("/skill-tree") },
