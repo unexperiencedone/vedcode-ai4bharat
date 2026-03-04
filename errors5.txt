@@ -1,0 +1,10 @@
+﻿src/components/documentExplainer/DocReadingMode.tsx(101,23): error TS2304: Cannot find name 'isLoading'.
+src/components/documentExplainer/DocReadingMode.tsx(104,14): error TS2304: Cannot find name 'isLoading'.
+src/components/documentExplainer/DocReadingMode.tsx(146,12): error TS2552: Cannot find name 'error'. Did you mean 'Error'?
+src/components/documentExplainer/DocReadingMode.tsx(151,52): error TS2304: Cannot find name 'error'.
+src/components/documentExplainer/DocReadingMode.tsx(156,41): error TS2304: Cannot find name 'isLoading'.
+src/components/documentExplainer/DocReadingMode.tsx(156,55): error TS2552: Cannot find name 'error'. Did you mean 'Error'?
+src/components/documentExplainer/DocReadingMode.tsx(165,14): error TS2304: Cannot find name 'isLoading'.
+src/components/documentExplainer/DocReadingMode.tsx(174,42): error TS2304: Cannot find name 'isLoading'.
+src/components/documentExplainer/DocReadingMode.tsx(180,42): error TS2304: Cannot find name 'isLoading'.
+src/components/documentExplainer/DocReadingMode.tsx(213,42): error TS2304: Cannot find name 'isLoading'.
