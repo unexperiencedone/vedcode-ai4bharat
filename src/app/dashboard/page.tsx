@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+// import { useSession } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 
-
-// ─── Component ──────────────────────────────────────────────────────
 import { DashboardView } from "@/components/dashboard/DashboardView";
 
 export default function Dashboard() {
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,8 +28,7 @@ export default function Dashboard() {
     fetchDashboard();
   }, []);
 
-  const user = session?.user as any;
-  const handle = data?.userProfile?.handle || user?.handle || "explorer";
+  const handle = "local_explorer";
 
   if (loading) {
     return (
@@ -48,4 +45,3 @@ export default function Dashboard() {
 
   return <DashboardView data={data} handle={handle} />;
 }
-
