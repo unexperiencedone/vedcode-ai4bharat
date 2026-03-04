@@ -45,6 +45,12 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-neon-blue: #00f3ff;
+  --color-neon-purple: #9d00ff;
+  --color-dark-bg: #0f172a;
+  --color-dark-card: #1e293b;
+  --color-dark-border: #334155;
 }
 
 :root {
@@ -154,7 +160,6 @@
     font-family: "JetBrains Mono", var(--font-geist-mono), monospace;
   }
 
-
   .bg-grid-pattern {
     background-image:
       linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
@@ -186,6 +191,20 @@
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #21262d;
     border-radius: 10px;
+  }
+
+  .glass-panel {
+    @apply backdrop-blur-xl border border-white/10 shadow-xl;
+    background: rgba(30, 41, 59, 0.6); /* --color-dark-card */
+  }
+  .neon-text {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple drop-shadow-[0_0_8px_rgba(0,243,255,0.5)];
+  }
+  .neon-border {
+    @apply border border-transparent bg-clip-border rounded-lg relative;
+  }
+  .neon-border::before {
+    @apply content-[''] absolute inset-0 -z-10 bg-gradient-to-r from-neon-blue to-neon-purple rounded-lg blur-sm opacity-50;
   }
 }
 
