@@ -1,124 +1,126 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Editor from "@monaco-editor/react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 interface EditorWindowProps {
   language: string;
   activeLang: string;
   code: string;
   setCode: (code: string) => void;
-  theme: string;
   runCode: () => void;
 }
 
-const EditorWindow = ({
+const EXT_MAP: Record<string, string> = {
+  python: "py",
+  javascript: "js",
+  rust: "rs",
+  cpp: "cpp",
+  java: "java",
+  c: "c",
+  go: "go",
+};
+
+export default function EditorWindow({
   language,
   activeLang,
   code,
   setCode,
-  theme,
   runCode,
-}: EditorWindowProps) => {
-  const monaco = useRef<any>(null);
+}: EditorWindowProps) {
+  const ext = EXT_MAP[activeLang] ?? activeLang;
 
-  const handleEditorDidMount = (editor: any, monacoInstance: any) => {
-    monaco.current = editor;
-
-    // Custom theme definition to match neon design
-    monacoInstance.editor.defineTheme("neon-dark", {
-      base: "vs-dark",
-      inherit: true,
-      rules: [
-        { token: "comment", foreground: "6272a4", fontStyle: "italic" },
-        { token: "keyword", foreground: "ff79c6", fontStyle: "bold" },
-        { token: "string", foreground: "f1fa8c" },
-        { token: "number", foreground: "bd93f9" },
-      ],
-      colors: {
-        "editor.background": "#1e293b00", // transparent to let glassmorphism show
-        "editor.lineHighlightBackground": "#ffffff0a",
-      },
-    });
-
-    monacoInstance.editor.setTheme(theme === "dark" ? "neon-dark" : "vs");
-
-    // Ctrl+Enter / Cmd+Enter shortcut
-    editor.addCommand(
-      monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.Enter,
-      () => {
-        runCode();
-      },
-    );
-  };
-
+  // Persist per-language drafts
   useEffect(() => {
-    // Load from local storage
-    if (typeof window !== "undefined") {
-      const savedCode = localStorage.getItem(`code_${language}`);
-      if (savedCode) setCode(savedCode);
-    }
-  }, [language, setCode]);
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem(`code_${language}`);
+    if (saved) setCode(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
 
   const handleChange = (value: string | undefined) => {
-    const val = value || "";
+    const val = value ?? "";
     setCode(val);
     if (typeof window !== "undefined") {
       localStorage.setItem(`code_${language}`, val);
     }
   };
 
-  const fileExt =
-    activeLang === "python"
-      ? "py"
-      : activeLang === "javascript"
-        ? "js"
-        : activeLang === "rust"
-          ? "rs"
-          : activeLang;
+  const handleMount = (editor: any, monaco: any) => {
+    // Clean professional dark theme matching the app
+    monaco.editor.defineTheme("archive-dark", {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "4b5563", fontStyle: "italic" },
+        { token: "keyword", foreground: "60a5fa", fontStyle: "bold" },
+        { token: "string", foreground: "34d399" },
+        { token: "number", foreground: "f472b6" },
+        { token: "type", foreground: "a78bfa" },
+      ],
+      colors: {
+        "editor.background": "#0b0e11",
+        "editor.lineHighlightBackground": "#ffffff06",
+        "editorLineNumber.foreground": "#374151",
+        "editorLineNumber.activeForeground": "#6b7280",
+        "editor.selectionBackground": "#3b82f620",
+        "editorCursor.foreground": "#3b82f6",
+      },
+    });
+    monaco.editor.setTheme("archive-dark");
+
+    // Ctrl+Enter / Cmd+Enter to run
+    editor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+      runCode
+    );
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="glass-panel rounded-xl overflow-hidden flex flex-col min-h-0 border border-white/10 relative shadow-[0_4px_30px_rgba(0,0,0,0.1)]"
-    >
-      <div className="bg-[#1e293b] border-b border-white/10 px-4 py-2 flex items-center justify-between">
-        <div className="flex space-x-2">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+    <div className="flex flex-col min-h-0 rounded-lg border border-border bg-card overflow-hidden shadow-sm">
+      {/* Tab bar */}
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2 bg-card">
+        <div className="flex items-center gap-1.5 bg-background rounded-md px-3 py-1 border border-border">
+          <span className="w-2 h-2 rounded-full bg-primary/60" />
+          <span className="text-xs font-mono font-medium text-muted-foreground">
+            main.{ext}
+          </span>
         </div>
-        <span className="text-xs text-gray-400 font-mono">main.{fileExt}</span>
+        <span className="ml-auto text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider">
+          {activeLang}
+        </span>
       </div>
 
-      <div className="flex-1 relative bg-[#1e293b]/50">
+      {/* Monaco editor */}
+      <div className="flex-1 relative">
         <Editor
           height="100%"
           language={activeLang}
           value={code}
-          theme={theme === "dark" ? "neon-dark" : "light"}
-          defaultValue="// Write your code here"
+          defaultValue="// Write your code here…"
           onChange={handleChange}
-          onMount={handleEditorDidMount}
+          onMount={handleMount}
           options={{
             minimap: { enabled: false },
-            fontSize: 16,
-            fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
+            fontSize: 14,
+            fontFamily: "'Fira Code', 'JetBrains Mono', 'Geist Mono', monospace",
+            fontLigatures: true,
             lineNumbers: "on",
-            roundedSelection: false,
             scrollBeyondLastLine: false,
-            padding: { top: 16 },
+            padding: { top: 12, bottom: 12 },
             smoothScrolling: true,
             cursorBlinking: "smooth",
             cursorSmoothCaretAnimation: "on",
             formatOnPaste: true,
+            renderLineHighlight: "gutter",
+            overviewRulerBorder: false,
+            scrollbar: {
+              verticalScrollbarSize: 4,
+              horizontalScrollbarSize: 4,
+            },
           }}
         />
       </div>
-    </motion.div>
+    </div>
   );
-};
-
-export default EditorWindow;
+}
