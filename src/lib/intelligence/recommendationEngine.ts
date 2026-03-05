@@ -58,3 +58,29 @@ export async function getNextStep(profileId: string, technologyId: string) {
         return null;
     }
 }
+
+/**
+ * Gets a combined mastery score (understanding + recall) for a given concept slug.
+ */
+export async function getMasteryScore(profileId: string, conceptSlug: string): Promise<number> {
+    try {
+        const concept = await db.query.conceptCards.findFirst({
+            where: eq(conceptCards.slug, conceptSlug)
+        });
+        
+        if (!concept) return 0.2; // default if not found
+
+        const progress = await db.query.userConceptProgress.findFirst({
+            where: and(
+                eq(userConceptProgress.profileId, profileId),
+                eq(userConceptProgress.conceptId, concept.id)
+            )
+        });
+
+        if (!progress) return 0.2; // default low mastery
+
+        return ((progress.understandingScore || 0) * 0.45) + ((progress.recallScore || 0) * 0.55);
+    } catch (e) {
+        return 0.2; // fallback
+    }
+}

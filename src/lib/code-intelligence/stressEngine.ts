@@ -34,7 +34,7 @@ export class ArchitecturalStressEngine {
       conceptDensity: density,
       changeFrequency: frequency,
       stressScore,
-      lastComputed: new Date()
+      lastCalculated: new Date()
     }).onConflictDoUpdate({
       target: [architectureMetrics.nodeId],
       set: {
@@ -42,7 +42,7 @@ export class ArchitecturalStressEngine {
         conceptDensity: density,
         changeFrequency: frequency,
         stressScore,
-        lastComputed: new Date()
+        lastCalculated: new Date()
       }
     });
 

@@ -11,6 +11,8 @@ const PAGE_LABELS: Record<string, string> = {
   "/compiler": "Compiler",
   "/vedacode": "Knowledge Studio",
   "/documentExplainer": "Document Explainer",
+  "/workspace": "IDE Workspace",
+  "/roadmap": "Learning Roadmap",
   "/vault": "Vault",
   "/atelier": "Atelier",
   "/skill-tree": "Skills",
@@ -67,6 +69,7 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </main>
+        <AITutorSidebar />
       </div>
     </div>
   );
@@ -76,3 +79,4 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
 import { CommandHeader as CommandHeaderShell } from "./CommandHeader";
 import { ClusterRail as ClusterRailShell } from "./ClusterRail";
 import { SystemFooter } from "./SystemFooter";
+import { AITutorSidebar } from "@/components/ui/AITutorSidebar";
