@@ -91,11 +91,18 @@ export function useTabs() {
 }
 
 function getTitleFromPathname(pathname: string) {
-  if (pathname === "/dashboard") return "Cluster Terminal";
-  if (pathname === "/vault") return "Data Vault";
-  if (pathname.startsWith("/vault/")) return `Vault: ${pathname.split("/").pop()}`;
-  if (pathname === "/atelier") return "Atelier Studio";
-  if (pathname === "/skill-tree") return "Evolution Lab";
-  if (pathname === "/ui-library") return "Toolbox";
-  return pathname.split("/").pop() || "Untitled";
+  if (pathname === "/dashboard") return "Dashboard";
+  if (pathname === "/learn") return "Learn";
+  if (pathname === "/explore") return "Explore";
+  if (pathname === "/guard") return "Guard";
+  if (pathname === "/compiler") return "Compiler";
+  if (pathname === "/vedacode") return "Knowledge Studio";
+  if (pathname === "/documentExplainer") return "Doc Explainer";
+  if (pathname === "/vault") return "Vault";
+  if (pathname.startsWith("/vault/")) return `Vault · ${pathname.split("/").pop()}`;
+  if (pathname === "/atelier") return "Atelier";
+  if (pathname === "/skill-tree") return "Skills";
+  if (pathname === "/ui-library") return "UI Library";
+  const segment = pathname.split("/").filter(Boolean).pop() ?? "Page";
+  return segment.charAt(0).toUpperCase() + segment.slice(1);
 }
