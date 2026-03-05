@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useCallback, useEffect } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -9,108 +9,120 @@ import {
   useNodesState,
   useEdgesState,
   BackgroundVariant,
-  Node,
-  Edge
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
+  type Node,
+  type Edge,
+  type NodeTypes,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { ConstellationNode } from "./ConstellationNode";
+import type { ConstellationStats } from "@/lib/constellation/cache";
 
-const initialNodes: Node[] = [
-  { 
-    id: '1', 
-    position: { x: 400, y: 300 }, 
-    data: { label: 'app/layout.tsx' },
-    style: { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#fff', border: '1px solid rgba(59, 130, 246, 0.5)', borderRadius: '8px', padding: '10px' }
-  },
-  { 
-    id: '2', 
-    position: { x: 300, y: 150 }, 
-    data: { label: 'components/layout/Navbar.tsx' },
-    style: { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#fff', border: '1px solid rgba(59, 130, 246, 0.5)', borderRadius: '8px', padding: '10px' }
-  },
-  { 
-    id: '3', 
-    position: { x: 500, y: 150 }, 
-    data: { label: 'components/dashboard/DashboardView.tsx' },
-    style: { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#fff', border: '1px solid rgba(59, 130, 246, 0.5)', borderRadius: '8px', padding: '10px' }
-  },
-  { 
-    id: '4', 
-    position: { x: 500, y: 450 }, 
-    data: { label: 'lib/db/schema.ts' },
-    style: { backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.5)', borderRadius: '8px', padding: '10px' }
-  },
-  { 
-    id: '5', 
-    position: { x: 650, y: 300 }, 
-    data: { label: 'app/api/user/route.ts' },
-    style: { backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.5)', borderRadius: '8px', padding: '10px' }
-  },
-];
+const nodeTypes: NodeTypes = {
+  constellation: ConstellationNode,
+};
 
-const initialEdges: Edge[] = [
-  { id: 'e1-2', source: '2', target: '1', animated: true, style: { stroke: '#3b82f6' } },
-  { id: 'e1-3', source: '3', target: '1', animated: true, style: { stroke: '#3b82f6' } },
-  { id: 'e4-3', source: '4', target: '3', animated: true, style: { stroke: '#10b981' } },
-  { id: 'e4-5', source: '4', target: '5', animated: true, style: { stroke: '#10b981' } },
-  { id: 'e5-3', source: '5', target: '3', animated: true, style: { stroke: '#f59e0b' } },
-];
+interface GraphCanvasProps {
+  nodes: Node[];
+  edges: Edge[];
+  stats: ConstellationStats | null;
+  onNodeClick?: (filePath: string, language: string) => void;
+}
 
-export function GraphCanvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function GraphCanvas({
+  nodes: initialNodes,
+  edges: initialEdges,
+  stats,
+  onNodeClick,
+}: GraphCanvasProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
+  // Sync when parent passes new data (useNodesState only reads initial value on mount)
   useEffect(() => {
-    async function fetchGraph() {
-      try {
-        const res = await fetch("/api/explore");
-        const data = await res.json();
-        if (data.nodes && data.edges) {
-          setNodes(data.nodes);
-          setEdges(data.edges);
-        }
-      } catch (e) {
-        console.error("Failed to load graph data", e);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchGraph();
-  }, [setNodes, setEdges]);
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
+  useEffect(() => {
+    setEdges(initialEdges);
+  }, [initialEdges, setEdges]);
 
-  if (isLoading) {
-    return (
-      <div className="w-full h-full min-h-[600px] border border-border/50 rounded-xl flex items-center justify-center bg-card/50">
-         <div className="flex flex-col items-center gap-4">
-           <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-           <p className="text-sm tracking-widest text-muted-foreground uppercase">Parsing Workspace AST...</p>
-         </div>
-      </div>
-    );
-  }
+  const nodeColor = useCallback((node: Node) => {
+    const color = (node.data as Record<string, unknown>)?.color;
+    return typeof color === "string" ? color : "#6b7280";
+  }, []);
+
+  const solarSystemCount = useMemo(
+    () => stats?.solarSystems?.length ?? 0,
+    [stats],
+  );
 
   return (
-    <div className="w-full h-full min-h-[600px] border border-border/50 rounded-xl overflow-hidden bg-background">
+    <div className="w-full h-full min-h-[600px] border border-border/50 rounded-xl overflow-hidden bg-background relative">
+      {/* Stats bar */}
+      {stats && (
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-3 flex-wrap">
+          <div className="bg-card/80 backdrop-blur border border-border/50 rounded-lg px-3 py-1.5 text-xs text-muted-foreground flex gap-3">
+            <span className="text-foreground font-semibold">{stats.repo}</span>
+            <span>·</span>
+            <span>{stats.fileCount} files</span>
+            <span>·</span>
+            <span>{stats.edgeCount} imports</span>
+            <span>·</span>
+            <span>{solarSystemCount} solar systems</span>
+          </div>
+          {stats.mostComplex && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-1.5 text-xs text-amber-400">
+              ⚡ Most complex: <strong>{stats.mostComplex}</strong>
+            </div>
+          )}
+        </div>
+      )}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        onNodeClick={
+          onNodeClick
+            ? (_e: React.MouseEvent, node: Node) => {
+                const d = node.data as Record<string, unknown>;
+                const fp = d.filePath as string;
+                const lang = (d.language as string) ?? "";
+                if (fp) onNodeClick(fp, lang);
+              }
+            : undefined
+        }
         fitView
+        fitViewOptions={{ padding: 0.15 }}
         colorMode="dark"
         proOptions={{ hideAttribution: true }}
+        minZoom={0.05}
+        maxZoom={4}
       >
         <Controls className="bg-background text-foreground border-border/50" />
-        <MiniMap 
-          nodeColor={(n) => {
-            if (n.style?.color) return n.style.color as string;
-            return '#fff';
-          }}
-          maskColor="rgba(0, 0, 0, 0.5)"
-          className="bg-card border-border/50" 
+        <MiniMap
+          nodeColor={nodeColor}
+          maskColor="rgba(0, 0, 0, 0.6)"
+          className="bg-card border-border/50"
         />
-        <Background variant={BackgroundVariant.Dots} gap={24} size={2} color="rgba(255,255,255,0.05)" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={28}
+          size={1}
+          color="rgba(255,255,255,0.04)"
+        />
       </ReactFlow>
+
+      {/* Tooltip CSS */}
+      <style>{`
+                .react-flow__node-constellation .constellation-tooltip {
+                    display: none;
+                }
+                .react-flow__node-constellation:hover .constellation-tooltip {
+                    display: block;
+                }
+            `}</style>
     </div>
   );
 }
