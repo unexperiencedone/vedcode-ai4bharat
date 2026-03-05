@@ -1,51 +1,103 @@
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { conceptCards, userConceptProgress } from "@/db/schema";
+import { eq, ilike, and } from "drizzle-orm";
+import { getAdaptiveExplanation } from "@/lib/intelligence/adaptiveExplanation";
+import { getConceptGaps } from "@/lib/intelligence/learningPath";
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { bedrock } from "@ai-sdk/amazon-bedrock";
+import { GroundingEngine } from "@/lib/code-intelligence/groundingEngine";
 
 export async function POST(req: Request) {
     try {
-        const { keyword } = await fetch("/api/parse-body", { method: "POST", body: req.body }).then(res => res.json()).catch(async () => await req.json());
+        const body = await req.json();
+        const { keyword, profileId } = body;
 
         if (!keyword) {
             return NextResponse.json({ error: "Keyword is required" }, { status: 400 });
         }
 
-        // In a full implementation, we'd pull the `projectFiles` from Drizzle here to pass as context mapping
-        // const files = await db.select().from(projectFiles).where(eq(projectFiles.userId, session.user.id));
-
-        // For MVP, we use the LLM to generate a simulated "Code-First" and "Theory-Second" response structured beautifully
-        const prompt = `
-      You are an elite developer mentor. The user has asked for an explanation of the concept / keyword: "${keyword}".
-      
-      Respond in Markdown. 
-      Structure your response exactly like this:
-      
-      ### Code-First Context (Simulated Project Match)
-      Provide a highly realistic, brief 5-10 line code snippet in TypeScript showing exactly how this keyword is typically implemented in a Next.js/Drizzle/Tailwind project.
-      Explain the snippet in 1-2 sentences.
-
-      ### Theory-Second Explanation
-      Provide a brilliantly clear, concise 2 paragraph explanation of what this concept actually is and why it was invented.
-      Avoid fluff. Use analogies if helpful.
-    `;
-
-        // Using OpenAI connection if configured, otherwise returning simulated response
-        if (process.env.OPENAI_API_KEY) {
-            const { text } = await generateText({
-                model: openai("gpt-4o-mini"),
-                prompt: prompt
-            });
-
-            return NextResponse.json({ explanation: text });
-        }
-
-        // Fallback if no API key
-        return NextResponse.json({
-            explanation: `### Code-First Context\n\`\`\`typescript\n// Placeholder Code\nconst example = "${keyword}";\n\`\`\`\nThis is a simulated ${keyword} example.\n\n### Theory-Second\n${keyword} is a critical component in modern web development.`
+        // 1. Attempt to find the concept card (slug match or name match)
+        let card = await db.query.conceptCards.findFirst({
+            where: eq(conceptCards.slug, keyword.toLowerCase().replace(/\s+/g, '-'))
         });
 
-    } catch (error) {
-        console.error("Learn API Error:", error);
+        if (!card) {
+            card = await db.query.conceptCards.findFirst({
+                where: ilike(conceptCards.name, keyword)
+            });
+        }
+
+        // 2. If card found, use Engine 1: Adaptive Explanation
+        if (card && profileId) {
+            const adaptive = await getAdaptiveExplanation(card.id, profileId);
+            const gaps = await getConceptGaps(card.id, profileId);
+
+            // Fetch current progress
+            const progress = await db.query.userConceptProgress.findFirst({
+                where: and(
+                    eq(userConceptProgress.profileId, profileId),
+                    eq(userConceptProgress.conceptId, card.id)
+                )
+            });
+
+            if (adaptive) {
+                return NextResponse.json({
+                    explanation: adaptive,
+                    gaps: gaps,
+                    mastery: {
+                        understanding: progress?.understandingScore || 0,
+                        recall: progress?.recallScore || 0,
+                        level: progress?.masteryLevel || 'learning'
+                    },
+                    source: 'knowledge_base'
+                });
+            }
+        }
+
+        // 3. Fallback: Grounded LLM Response (Mistral Large - AWS Bedrock)
+        const grounding = new GroundingEngine();
+        const context = await grounding.getContext(keyword);
+        const groundingContext = grounding.formatContextToPrompt(context);
+
+        const prompt = `
+            You are an elite developer mentor for Ved Code. 
+            The user is asking about: "${keyword}".
+            
+            ${groundingContext}
+            
+            TASK:
+            1. Provide a brilliantly clear, concise explanation structured in Markdown.
+            2. If knowledge grounding is provided above, reference EXACT symbols and files from the user's project to illustrate your point.
+            3. Address any architectural stress (fragility) mentioned in the grounding.
+            
+            ### Contextual Snippet
+            (Use a snippet from the grounding if available, otherwise a generic realistic one).
+            
+            ### Theory
+            2 paragraphs explaining the core concept.
+            
+            ### Project Application
+            1 paragraph on how this specific project implements or should implement this concept.
+        `;
+
+        const { text } = await generateText({
+            model: bedrock("mistral.mistral-large-2402-v1:0"),
+            prompt: prompt
+        });
+
+        return NextResponse.json({
+            explanation: {
+                name: keyword,
+                explanation: text,
+                difficulty: 'unknown'
+            },
+            source: context.concept ? 'grounded_llm' : 'llm_fallback'
+        });
+
+    } catch (error: any) {
+        console.error("Learn API Error:", error.message);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+
