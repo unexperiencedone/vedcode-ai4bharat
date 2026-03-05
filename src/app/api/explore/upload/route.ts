@@ -1,0 +1,120 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { parseGithubUrl, fetchRepoFiles } from '@/lib/constellation/githubFetcher';
+import { analyzeRepo } from '@/lib/constellation/astParser';
+import { buildConstellationGraph } from '@/lib/constellation/layout';
+import { constellationCache, fileContentCache } from '@/lib/constellation/cache';
+import { db } from '@/lib/db';
+import { fileNodes, architectureMetrics } from '@/db/schema';
+
+export async function POST(req: NextRequest) {
+    try {
+        const body = await req.json() as { repoUrl?: string };
+        const { repoUrl } = body;
+
+        if (!repoUrl?.trim()) {
+            return NextResponse.json({ error: 'repoUrl is required' }, { status: 400 });
+        }
+
+        // 1. Resolve owner / repo / branch from the URL
+        const { owner, repo, branch } = await parseGithubUrl(repoUrl);
+
+        // 2. Fetch all code files via GitHub API
+        const files = await fetchRepoFiles(owner, repo, branch);
+        if (files.size === 0) {
+            return NextResponse.json(
+                { error: 'No TypeScript/JavaScript files found in this repository.' },
+                { status: 400 }
+            );
+        }
+
+        // 3. Run ts-morph AST analysis
+        const { nodes: analysisNodes, edgePairs } = analyzeRepo(files);
+
+        // 4. Build React Flow layout (Solar System radial)
+        const { nodes, edges } = buildConstellationGraph(analysisNodes, edgePairs);
+
+        // 4.5 Architect Heatmap Integration (Phase 5.4)
+        try {
+            const allFiles = await db.select().from(fileNodes);
+            const allMetrics = await db.select().from(architectureMetrics);
+
+            const fileToMetric = new Map();
+            allFiles.forEach((f: any) => {
+                const m = allMetrics.find((metric: any) => metric.nodeId === f.id);
+                if (m) fileToMetric.set(f.path.replace(/\\/g, '/'), m);
+            });
+
+            nodes.forEach(node => {
+                const pathMatch = node.data.filePath as string;
+                // find loose match if exact fails
+                const metric = fileToMetric.get(pathMatch) ||
+                    [...fileToMetric.entries()].find(([k]) => pathMatch.endsWith(k))?.[1];
+
+                if (metric) {
+                    node.data.stressScore = metric.stressScore;
+                    node.data.coupling = metric.couplingScore;
+                    node.data.density = metric.conceptDensity;
+                    node.data.volatility = metric.changeFrequency;
+
+                    // UI Overrides
+                    if (metric.stressScore > 0.7) {
+                        node.data.redAlert = true;
+                        node.data.glowRadius = 30; // CRITICAL
+                    } else if (metric.stressScore > 0.4) {
+                        node.data.color = "#f59e0b"; // AMBER - WARNING
+                        node.data.glowRadius = 20;
+                    } else {
+                        node.data.color = "#10b981"; // GREEN - STABLE
+                    }
+                }
+            });
+        } catch (e) {
+            console.error("Failed to merge stress metrics:", e);
+        }
+
+        // 5. Compute stats
+        const solarSystems = [...new Set(analysisNodes.map((n) => n.solarSystem))];
+        const mostComplex = [...analysisNodes].sort((a, b) => b.complexity - a.complexity)[0];
+        const stats = {
+            fileCount: nodes.length,
+            edgeCount: edges.length,
+            solarSystems,
+            mostComplex: mostComplex
+                ? (mostComplex.filePath.split('/').pop() ?? mostComplex.filePath)
+                : 'n/a',
+            repo: `${owner}/${repo}`,
+            branch,
+        };
+
+        const data = { nodes, edges, stats };
+
+        // 6. Cache with session cookie
+        const sessionId =
+            req.cookies.get('constellation-session')?.value ?? crypto.randomUUID();
+        constellationCache.set(sessionId, data);
+        fileContentCache.set(sessionId, files); // for the explain API
+
+        const response = NextResponse.json({ ...data, sessionId });
+        response.cookies.set('constellation-session', sessionId, {
+            httpOnly: true,
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24, // 24 h
+        });
+        return response;
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Analysis failed';
+        console.error('[Constellation Upload]', err);
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: NextRequest) {
+    const sessionId = req.cookies.get('constellation-session')?.value;
+    if (sessionId) {
+        constellationCache.delete(sessionId);
+        fileContentCache.delete(sessionId);
+    }
+    const res = NextResponse.json({ ok: true });
+    res.cookies.delete('constellation-session');
+    return res;
+}
