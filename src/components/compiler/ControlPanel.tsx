@@ -1,7 +1,7 @@
 "use client";
 
-import { Play, Copy, Download, Trash2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { Play, Copy, Download, Trash2, Loader2, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ControlPanelProps {
   language: string;
@@ -13,7 +13,18 @@ interface ControlPanelProps {
   setCode: (code: string) => void;
 }
 
-const ControlPanel = ({
+const LANGUAGES = [
+  { id: "auto", label: "Auto-Detect" },
+  { id: "c", label: "C" },
+  { id: "cpp", label: "C++" },
+  { id: "java", label: "Java" },
+  { id: "python", label: "Python" },
+  { id: "javascript", label: "JavaScript" },
+  { id: "go", label: "Go" },
+  { id: "rust", label: "Rust" },
+];
+
+export default function ControlPanel({
   language,
   setLanguage,
   runCode,
@@ -21,122 +32,114 @@ const ControlPanel = ({
   code,
   setCode,
   detectedLanguage,
-}: ControlPanelProps) => {
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
-  };
+}: ControlPanelProps) {
+  const handleCopy = () => navigator.clipboard.writeText(code);
 
   const handleDownload = () => {
     const activeLang = language === "auto" ? detectedLanguage : language;
-    const fileExt =
-      activeLang === "python"
-        ? "py"
-        : activeLang === "javascript"
-          ? "js"
-          : activeLang === "rust"
-            ? "rs"
-            : activeLang;
-    const element = document.createElement("a");
-    const file = new Blob([code], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = `main.${fileExt}`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-  };
-
-  const handleClear = () => {
-    setCode("");
+    const extMap: Record<string, string> = {
+      python: "py",
+      javascript: "js",
+      rust: "rs",
+      cpp: "cpp",
+      java: "java",
+      c: "c",
+      go: "go",
+    };
+    const ext = extMap[activeLang ?? ""] ?? activeLang ?? "txt";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([code], { type: "text/plain" }));
+    a.download = `main.${ext}`;
+    a.click();
   };
 
   return (
-    <div className="glass-panel rounded-xl p-3 flex flex-wrap gap-4 justify-between items-center border border-white/10 bg-[#0f172a]/90 backdrop-blur-md">
-      {/* Language Selector */}
-      <div className="flex items-center gap-3">
-        <label className="text-sm font-semibold text-gray-400 hidden sm:block">
-          Language:
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 shadow-sm">
+      {/* Language selector */}
+      <div className="flex items-center gap-2">
+        <label className="text-xs font-medium text-muted-foreground hidden sm:block">
+          Language
         </label>
         <div className="relative">
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="appearance-none bg-[#1e293b] border border-white/10 text-white text-sm rounded-lg focus:ring-neon-blue focus:border-neon-blue block p-2.5 pr-8 outline-none font-semibold uppercase tracking-wider cursor-pointer shadow-inner"
+            className="appearance-none rounded-md border border-border bg-background px-3 py-1.5 pr-7 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer transition-colors"
           >
-            <option value="auto">
-              ✨ Auto-Detect{" "}
-              {language === "auto" && detectedLanguage
-                ? `(${detectedLanguage})`
-                : ""}
-            </option>
-            <option value="c">C</option>
-            <option value="cpp">C++</option>
-            <option value="java">Java</option>
-            <option value="python">Python</option>
-            <option value="javascript">JavaScript</option>
-            <option value="go">Go</option>
-            <option value="rust">Rust</option>
+            {LANGUAGES.map((lang) => (
+              <option key={lang.id} value={lang.id}>
+                {lang.label}
+                {lang.id === "auto" && detectedLanguage && language === "auto"
+                  ? ` (${detectedLanguage})`
+                  : ""}
+              </option>
+            ))}
           </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-            <svg
-              className="fill-current h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-            >
-              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-            </svg>
-          </div>
+          <svg
+            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+          </svg>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-3">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          title="Copy Code"
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-1.5">
+        <button
           onClick={handleCopy}
-          className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 transition-colors"
+          title="Copy code"
+          className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-accent"
         >
-          <Copy size={18} />
-        </motion.button>
+          <Copy className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Copy</span>
+        </button>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          title="Download File"
+        <button
           onClick={handleDownload}
-          className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 transition-colors"
+          title="Download file"
+          className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-accent"
         >
-          <Download size={18} />
-        </motion.button>
+          <Download className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Download</span>
+        </button>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          title="Clear Editor"
-          onClick={handleClear}
-          className="p-2.5 rounded-lg bg-white/5 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50 border border-white/10 text-gray-300 transition-colors"
+        <button
+          onClick={() => setCode("")}
+          title="Clear editor"
+          className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5"
         >
-          <Trash2 size={18} />
-        </motion.button>
+          <Trash2 className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Clear</span>
+        </button>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <button
           onClick={runCode}
           disabled={isLoading}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold text-white shadow-lg transition-all ${
+          className={cn(
+            "flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-semibold text-white transition-all shadow-sm",
             isLoading
-              ? "bg-gray-600 cursor-not-allowed hidden"
-              : "bg-gradient-to-r from-neon-blue to-neon-purple hover:shadow-[0_0_20px_rgba(157,0,255,0.5)]"
-          } ${isLoading && "opacity-70 grayscale"}`}
+              ? "bg-primary/50 cursor-not-allowed"
+              : "bg-primary hover:bg-primary/90 active:scale-[0.97]"
+          )}
         >
-          <Play size={18} fill="currentColor" />
-          <span>{isLoading ? "Running..." : "Run Code"}</span>
-        </motion.button>
+          {isLoading ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Running…
+            </>
+          ) : (
+            <>
+              <Play className="w-3.5 h-3.5" fill="currentColor" />
+              Run
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
-};
-
-export default ControlPanel;
+}
