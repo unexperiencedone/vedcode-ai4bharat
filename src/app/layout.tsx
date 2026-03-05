@@ -16,14 +16,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The Archive",
+  title: "Ved Code",
   description:
-    "A high-end, minimalist developer archive and collaborative portfolio.",
+    "A professional developer platform for learning, building, and exploring code.",
 };
 
 import { TabProvider } from "@/components/providers/TabProvider";
 import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { Providers } from "@/components/providers/Providers";
+import { GlobalMentorOverlay } from "@/components/ui/GlobalMentorOverlay";
 
 
 export default function RootLayout({
@@ -43,6 +44,7 @@ export default function RootLayout({
               <MainLayout>{children}</MainLayout>
             </WorkspaceLayout>
             <Footer />
+            <GlobalMentorOverlay />
           </TabProvider>
         </Providers>
       </body>
