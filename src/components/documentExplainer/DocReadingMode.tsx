@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import MermaidDiagram from "./MermaidDiagram";
 import { highlightKeywords } from "./KeywordTooltip";
+import { GraphCanvas } from "@/components/galaxy/GraphCanvas";
+import type { Node, Edge } from "@xyflow/react";
 
 
 // Plugins for math and formatting
@@ -49,9 +50,9 @@ export default function DocReadingMode() {
   >("read");
 
   // Tab state
-  const [mermaidCode, setMermaidCode] = useState<string>("");
-  const [mermaidLoading, setMermaidLoading] = useState(false);
-  const [mermaidError, setMermaidError] = useState<string>("");
+  const [graphData, setGraphData] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
+  const [graphLoading, setGraphLoading] = useState(false);
+  const [graphError, setGraphError] = useState<string>("");
 
   const [scenarios, setScenarios] = useState<string>("");
   const [scenariosLoading, setScenariosLoading] = useState(false);
@@ -77,8 +78,8 @@ export default function DocReadingMode() {
     // Reset all tab state
     setExplanation("");
     setChatError("");
-    setMermaidCode("");
-    setMermaidError("");
+    setGraphData(null);
+    setGraphError("");
     setScenarios("");
     setScenariosError("");
     setImpactSummary("");
@@ -115,7 +116,7 @@ export default function DocReadingMode() {
       .finally(() => setIsReadingLoading(false));
 
     // ── Tab 2: Knowledge Map ──
-    setMermaidLoading(true);
+    setGraphLoading(true);
     fetch("/api/documentVisualizer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -123,11 +124,11 @@ export default function DocReadingMode() {
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.mermaidCode) setMermaidCode(data.mermaidCode);
-        else setMermaidError(data.error || "Failed to generate diagram");
+        if (data.graphData) setGraphData(data.graphData);
+        else setGraphError(data.error || "Failed to generate diagram");
       })
-      .catch((err) => setMermaidError(err.message))
-      .finally(() => setMermaidLoading(false));
+      .catch((err) => setGraphError(err.message))
+      .finally(() => setGraphLoading(false));
 
     // ── Tab 3: Creative Domains ──
     setScenariosLoading(true);
@@ -179,9 +180,9 @@ export default function DocReadingMode() {
 
 
   const isAnyLoading =
-    isReadingLoading || mermaidLoading || scenariosLoading || impactLoading;
+    isReadingLoading || graphLoading || scenariosLoading || impactLoading;
   const hasAnyContent =
-    explanation || mermaidCode || scenarios || impactSummary;
+    explanation || graphData || scenarios || impactSummary;
 
   // Shared markdown component factory — injects keyword highlighting into all tabs
   const makeMarkdownComponents = (accentColor: string) => ({
@@ -310,7 +311,7 @@ export default function DocReadingMode() {
               onClick={() => setActiveTab("diagram")}
               label="Knowledge Map"
               icon={<Network size={16} />}
-              loading={mermaidLoading}
+              loading={graphLoading}
             />
             <TabButton
               active={activeTab === "code"}
@@ -394,21 +395,21 @@ export default function DocReadingMode() {
                 {/* ── TAB 2: Knowledge Map ── */}
                 {activeTab === "diagram" && (
                   <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                    {mermaidError && (
+                    {graphError && (
                       <ErrorCard
                         title="Logic Mapping Failed"
-                        message={mermaidError}
+                        message={graphError}
                       />
                     )}
 
-                    {mermaidLoading && !mermaidCode && (
+                    {graphLoading && !graphData && (
                       <LoadingState
                         label="Extracting Structural Axioms..."
                         color="text-emerald-500"
                       />
                     )}
 
-                    {mermaidCode && (
+                    {graphData && (
                       <div className="space-y-12">
                         <Card className="bg-slate-900/30 border-white/[0.05] backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden border">
                           <CardHeader className="p-10 pb-4 border-b border-white/[0.02]">
@@ -422,32 +423,30 @@ export default function DocReadingMode() {
                                   DEPENDENCY FLOW & ARCHITECTURAL AXIOMS
                                 </CardDescription>
                               </div>
-                              <Button
-                                variant="secondary"
-                                className="bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl h-11 px-6 border border-white/5"
-                              >
-                                <Maximize2 size={16} className="mr-2" />
-                                Expand
-                              </Button>
+                              <div className="flex items-center gap-6 mt-4 md:mt-0 px-4 py-2 bg-slate-900/50 rounded-full border border-white/5">
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                                  Prerequisites
+                                </div>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                                  Core Concepts
+                                </div>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-[#8b5cf6] shadow-[0_0_8px_rgba(139,92,246,0.5)]"></div>
+                                  Future Applications
+                                </div>
+                              </div>
                             </div>
                           </CardHeader>
-                          <CardContent className="p-10 pt-12">
-                            <MermaidDiagram code={mermaidCode} />
+                          <CardContent className="p-0 h-[600px] w-full bg-[#020617]">
+                            <GraphCanvas 
+                                nodes={graphData.nodes} 
+                                edges={graphData.edges} 
+                                stats={null} 
+                            />
                           </CardContent>
                         </Card>
-
-                        <details className="group/details">
-                          <summary className="text-[10px] uppercase tracking-[0.2em] text-slate-600 font-bold cursor-pointer hover:text-slate-400 transition-colors list-none flex items-center gap-3 ml-2">
-                            <ChevronRight
-                              size={14}
-                              className="group-open/details:rotate-90 transition-transform text-emerald-500"
-                            />
-                            View Structural Source
-                          </summary>
-                          <pre className="mt-6 p-8 bg-black/40 rounded-3xl overflow-x-auto text-xs text-emerald-500/60 border border-emerald-500/10 font-mono leading-relaxed backdrop-blur-md">
-                            {mermaidCode}
-                          </pre>
-                        </details>
                       </div>
                     )}
                   </div>
