@@ -48,7 +48,7 @@ export function Navbar({ user }: NavbarProps) {
               A
             </div>
             <span className="font-semibold text-foreground tracking-tight">
-              The Archive
+              Ved Code
             </span>
           </Link>
 
@@ -73,9 +73,9 @@ export function Navbar({ user }: NavbarProps) {
 
         {/* Right Action */}
         <div className="flex items-center gap-4">
-          <div className="hidden lg:flex items-center gap-2 text-xs font-mono text-muted-foreground bg-accent/50 border border-border px-3 py-1.5 rounded">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            SYSTEM OPERATIONAL
+          <div className="hidden lg:flex items-center gap-2 text-xs text-muted-foreground bg-accent/50 border border-border px-3 py-1.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+            Early Access
           </div>
 
           <Button
