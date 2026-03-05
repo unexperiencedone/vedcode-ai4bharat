@@ -1,26 +1,32 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+
 export function SystemFooter() {
+  const pathname = usePathname();
+
+  // Don't show on auth/landing routes
+  const isAuthRoute = [
+    "/",
+    "/login",
+    "/register",
+    "/onboarding",
+    "/manifesto",
+    "/changelog",
+  ].includes(pathname);
+  if (isAuthRoute) return null;
+
   return (
-    <footer className="h-8 border-t border-white/10 px-6 flex items-center justify-between text-[10px] uppercase tracking-widest font-bold text-muted-foreground/30 bg-background/50 backdrop-blur-sm z-50">
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></span>
-          <span>CPU: 12%</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></span>
-          <span>MEM: 4.2GB / 16GB</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_var(--primary)]"></span>
-          <span>NET: 420MB/s</span>
-        </div>
+    <footer className="h-7 border-t border-border px-5 flex items-center justify-between bg-card/50 backdrop-blur-sm z-50 shrink-0">
+      <div className="flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+        <span className="text-[10px] text-muted-foreground/50 font-medium">
+          Connected
+        </span>
       </div>
-      <div className="flex items-center gap-4">
-        <span>ARCHIVE_NODE_01</span>
-        <span>UTC 14:22:11</span>
-      </div>
+      <span className="text-[10px] text-muted-foreground/30 font-medium">
+        Ved Code · {new Date().getFullYear()}
+      </span>
     </footer>
   );
 }
