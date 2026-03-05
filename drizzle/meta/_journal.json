@@ -15,6 +15,20 @@
       "when": 1772396650081,
       "tag": "0001_tiresome_expediter",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772730311154,
+      "tag": "0002_gray_moondragon",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772731808299,
+      "tag": "0003_strange_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }
