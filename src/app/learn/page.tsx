@@ -6,21 +6,38 @@ import { ExplanationCard } from "@/components/learning/ExplanationCard";
 
 export default function LearnPage() {
   const [keyword, setKeyword] = useState<string | null>(null);
-  const [explanation, setExplanation] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<any>(null);
+  const [gaps, setGaps] = useState<any[]>([]);
+  const [mastery, setMastery] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = async (term: string) => {
     setKeyword(term);
     setIsLoading(true);
     setExplanation(null);
+    setGaps([]);
+    setMastery(null);
     try {
+      // For now, using a placeholder profileId. 
+      // In a real session, this would come from useAuth() or similar.
+      const profileId = "00000000-0000-0000-0000-000000000000"; 
+
       const res = await fetch("/api/learn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword: term }),
+        body: JSON.stringify({ keyword: term, profileId }),
       });
       const data = await res.json();
-      setExplanation(data.explanation);
+      
+      if (data.source === 'knowledge_base') {
+        setExplanation(data.explanation.explanation); // Extract theory string
+        setGaps(data.gaps || []);
+        setMastery(data.mastery);
+      } else {
+        setExplanation(data.explanation.explanation);
+        setGaps([]);
+        setMastery(null);
+      }
     } catch (e) {
       setExplanation("Error loading context. Please try again.");
     } finally {
@@ -63,7 +80,12 @@ export default function LearnPage() {
                <p className="text-muted-foreground animate-pulse">Running Code-First retrieval...</p>
             </div>
           ) : (
-            <ExplanationCard keyword={keyword} explanation={explanation} />
+            <ExplanationCard 
+              keyword={keyword} 
+              explanation={explanation} 
+              gaps={gaps} 
+              mastery={mastery} 
+            />
           )}
         </div>
       )}
