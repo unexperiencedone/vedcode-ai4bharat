@@ -4,12 +4,12 @@ import { projects, projectMembers, projectFiles } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/auth';
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
     if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 });
 
-    const projectId = params.id;
+    const { id: projectId } = await params;
     if (!projectId) return new NextResponse("Project ID required", { status: 400 });
 
     // Verify user is a member 
