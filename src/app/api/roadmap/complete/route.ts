@@ -45,13 +45,13 @@ export async function POST(req: Request) {
     });
 
     if (existingProfile) {
-      const newMastery = Math.min((existingProfile.masteryScore || 0) + 0.15, 1.0);
-      const newConcepts = (existingProfile.conceptsLearned || 0) + 10; // approximate
+      const newMastery = Math.min((existingProfile.conceptMasteryScore || 0) + 0.15, 1.0);
+      const newConcepts = (existingProfile.totalKeywordsLearned || 0) + 10; // approximate
 
       await db.update(learnerProfile)
         .set({
-          masteryScore: newMastery,
-          conceptsLearned: newConcepts,
+          conceptMasteryScore: newMastery,
+          totalKeywordsLearned: newConcepts,
           lastUpdated: new Date(),
           lastSignalAt: new Date(),
         })

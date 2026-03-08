@@ -29,6 +29,7 @@ export const profiles = pgTable("profiles", {
   name: text("name").notNull(),
   handle: text("handle").unique().notNull(),
   role: text("role"),
+  skillLevel: text("skill_level").default('beginner'),
   bio: text("bio"),
   hobbies: jsonb("hobbies").default([]),
   currentLearning: text("current_learning"),
