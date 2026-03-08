@@ -10,7 +10,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <main className={cn(
-      "flex-1 flex flex-col",
+      "flex-1 min-h-0 flex flex-col",
       !skipPadding ? "pt-0" : "pt-0" // WorkspaceLayout handles padding/scrolling for app routes
     )}>
       {children}

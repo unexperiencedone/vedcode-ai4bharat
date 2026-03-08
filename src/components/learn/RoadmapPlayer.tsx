@@ -1,247 +1,427 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
 import {
-  Target,
-  CheckCircle2,
   Lock,
   PlayCircle,
-  BookOpen,
-  Code2,
-  ArrowRight,
+  CheckCircle2,
+  Target,
+  Loader2,
+  Sparkles,
+  Trophy,
+  ArrowLeft,
+  Plus,
 } from "lucide-react";
-// Mock import bypassed for UI demo. In production, this imports the DB fetcher.
+import { RoadmapGenerator } from "../learning/RoadmapGenerator";
+import { RoadmapPreview } from "./RoadmapPreview";
+import { LessonPanel } from "./LessonPanel";
+import type { RoadmapStep } from "@/db/schema";
+import { cn } from "@/lib/utils";
 
-interface LessonContent {
-  id: string;
-  concept: string;
-  title: string;
-  type: "theory" | "interactive";
-  description: string;
-  codeSnippet?: string;
-}
-
-const MOCK_ROADMAP: LessonContent[] = [
-  {
-    id: "L1",
-    concept: "async_await",
-    title: "The Async/Await Foundation",
-    type: "theory",
-    description:
-      "Understand how JavaScript handles promises under the hood and why await prevents the thread from blocking.",
-  },
-  {
-    id: "L2",
-    concept: "error_handling",
-    title: "Safeguarding Asynchronous Execution",
-    type: "interactive",
-    description:
-      "Wrap the previous fetch call in a robust try/catch block. Ensure the UI can recover from a 500 error gracefully.",
-    codeSnippet: `// Exercise: Add error handling\nasync function fetchUserData(uid: string) {\n  const res = await fetch(\`/api/users/\${uid}\`);\n  const data = await res.json();\n  return data;\n}`,
-  },
-  {
-    id: "L3",
-    concept: "promise_all",
-    title: "Parallelism for Performance",
-    type: "theory",
-    description:
-      "When independent async calls are bottlenecking your app, Promise.all runs them concurrently.",
-  },
-];
+type PlayerMode =
+  | "loading"
+  | "dashboard"
+  | "previewing"
+  | "learning"
+  | "completed";
 
 export function RoadmapPlayer() {
-  const [activeLessonIndex, setActiveLessonIndex] = useState(0);
-  const [quizMode, setQuizMode] = useState(false);
+  const { data: session } = useSession();
+  const profileId = (session?.user as any)?.id;
+  const [mode, setMode] = useState<PlayerMode>("loading");
 
-  // Mock mastery context for the demo
-  const [userMastery, setUserMastery] = useState<Record<string, number>>({
-    async_await: 0.8,
-    error_handling: 0.3,
-    promise_all: 0.0,
-  });
+  // All roadmaps
+  const [roadmaps, setRoadmaps] = useState<any[]>([]);
+  const [showGenerator, setShowGenerator] = useState(false);
 
-  const activeLesson = MOCK_ROADMAP[activeLessonIndex];
+  // Active roadmap data (for learning mode)
+  const [roadmapId, setRoadmapId] = useState<string | null>(null);
+  const [roadmapTitle, setRoadmapTitle] = useState("");
+  const [roadmapGoal, setRoadmapGoal] = useState("");
+  const [techSlug, setTechSlug] = useState("");
+  const [steps, setSteps] = useState<RoadmapStep[]>([]);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  const simulateTopicCompletion = () => {
-    // Increment mastery locally to simulate the engine updating recall_score
-    setUserMastery((prev) => ({
-      ...prev,
-      [activeLesson.concept]: Math.min(
-        (prev[activeLesson.concept] || 0) + 0.5,
-        1.0,
-      ),
-    }));
-    setQuizMode(false);
-    if (activeLessonIndex < MOCK_ROADMAP.length - 1) {
-      setActiveLessonIndex((prev) => prev + 1);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 1. On mount: Load existing active roadmaps
+  useEffect(() => {
+    if (!profileId) return;
+    loadRoadmaps();
+  }, [profileId]);
+
+  const loadRoadmaps = async () => {
+    try {
+      const res = await fetch("/api/roadmap/mine");
+      const data = await res.json();
+
+      const actives =
+        data.roadmaps?.filter((r: any) => r.status === "active") || [];
+      setRoadmaps(actives);
+      setMode("dashboard");
+
+      // Auto-show generator if no roadmaps exist
+      if (actives.length === 0) {
+        setShowGenerator(true);
+      }
+    } catch (e) {
+      console.error(e);
+      setMode("dashboard");
     }
   };
 
-  return (
-    <div className="flex h-full w-full bg-[#0a0f18] text-foreground p-6 gap-6 custom-scrollbar overflow-auto">
-      {/* The Curriculum Graph Panel */}
-      <div className="w-1/3 bg-slate-900/50 border border-slate-800 rounded-2xl flex flex-col overflow-hidden shrink-0">
-        <div className="p-5 border-b border-slate-800 bg-slate-900/80">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-1">
-            <Target className="text-indigo-400" size={20} /> Asynchronous
-            Patterns
-          </h2>
-          <p className="text-sm text-slate-400">
-            Curated specifically based on your recent architectural struggles.
-          </p>
-        </div>
+  const openRoadmap = (roadmap: any) => {
+    setRoadmapId(roadmap.id);
+    setRoadmapTitle(roadmap.title);
+    setRoadmapGoal(roadmap.goal);
+    setTechSlug(roadmap.techSlug);
+    setSteps(roadmap.steps);
+    setCurrentStepIndex(roadmap.currentStepIndex || 0);
+    setMode("learning");
+  };
 
-        <div className="p-5 space-y-4">
-          {MOCK_ROADMAP.map((lesson, idx) => {
-            const mastery = userMastery[lesson.concept] || 0;
-            const isUnlocked =
-              idx === 0 ||
-              (userMastery[MOCK_ROADMAP[idx - 1].concept] || 0) >= 0.6;
-            const isActive = activeLessonIndex === idx;
+  // 2. AI generates new roadmap → Preview mode
+  const handleGenerated = (customRoadmap: any) => {
+    const rd = customRoadmap.roadmap || customRoadmap;
+    setRoadmapTitle(rd.title || "Custom AI Learning Path");
+    setSteps(rd.steps || []);
+    setTechSlug(customRoadmap.techSlug || "nextjs");
+    setMode("previewing");
+  };
 
-            return (
-              <div
-                key={lesson.id}
-                onClick={() => isUnlocked && setActiveLessonIndex(idx)}
-                className={`relative p-4 rounded-xl border transition-all \${
-                                    isActive 
-                                    ? 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]' 
-                                    : isUnlocked 
-                                        ? 'bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 cursor-pointer' 
-                                        : 'bg-slate-900/50 border-slate-800 opacity-50 cursor-not-allowed'
-                                }`}
+  // 3. User saves previewed roadmap
+  const handleSaveRoadmap = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/roadmap/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: roadmapTitle,
+          goal: roadmapTitle, // We use title as goal context fallback
+          techSlug: techSlug,
+          steps,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // Add to local state and open it immediately
+      setRoadmaps((prev) => [data.roadmap, ...prev]);
+      setShowGenerator(false);
+      openRoadmap(data.roadmap);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 4. User completes a lesson
+  const handleLessonComplete = async () => {
+    if (currentStepIndex === steps.length - 1) {
+      // Complete entire roadmap
+      await fetch("/api/roadmap/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roadmapId }),
+      });
+      // Update local state to remove completed roadmap from actives
+      setRoadmaps((prev) => prev.filter((r) => r.id !== roadmapId));
+      setMode("completed");
+    } else {
+      // Advance to next step
+      const nextIndex = currentStepIndex + 1;
+      setCurrentStepIndex(nextIndex);
+
+      // Save progress and silently update the roadmaps array state
+      fetch("/api/roadmap/mine", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roadmapId, currentStepIndex: nextIndex }),
+      }).then(() => {
+        setRoadmaps((prev) =>
+          prev.map((r) =>
+            r.id === roadmapId ? { ...r, currentStepIndex: nextIndex } : r,
+          ),
+        );
+      });
+    }
+  };
+
+  if (mode === "loading") {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  if (mode === "dashboard") {
+    return (
+      <div className="flex flex-col h-full bg-background p-8 overflow-y-auto custom-scrollbar">
+        <div className="max-w-6xl mx-auto w-full">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                <Target className="text-indigo-400 w-8 h-8" /> Learning Journey
+              </h1>
+              <p className="text-slate-400 mt-2">
+                Manage your active learning paths and track your progress.
+              </p>
+            </div>
+            {!showGenerator && (
+              <button
+                onClick={() => setShowGenerator(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    {mastery >= 0.8 ? (
-                      <CheckCircle2 size={16} className="text-emerald-400" />
-                    ) : !isUnlocked ? (
-                      <Lock size={16} className="text-slate-500" />
-                    ) : (
-                      <PlayCircle size={16} className="text-indigo-400" />
-                    )}
-                    <span
-                      className={`text-sm font-semibold \${isActive ? 'text-indigo-300' : 'text-slate-200'}`}
-                    >
-                      {lesson.title}
-                    </span>
-                  </div>
-                  <span className="text-xs px-2 py-0.5 rounded bg-white/5 text-slate-400">
-                    {lesson.type}
-                  </span>
-                </div>
+                <Plus size={18} /> New Roadmap
+              </button>
+            )}
+          </div>
 
-                {isUnlocked && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <div className="h-1 flex-1 bg-slate-900 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full \${mastery >= 0.8 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-                        style={{ width: mastery * 100 + "%" }}
-                      />
+          <AnimatePresence>
+            {showGenerator && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                animate={{ opacity: 1, height: "auto", marginBottom: 32 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-white">
+                    Create a Path
+                  </h3>
+                  {roadmaps.length > 0 && (
+                    <button
+                      onClick={() => setShowGenerator(false)}
+                      className="text-sm text-slate-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+                <RoadmapGenerator onRoadmapGenerated={handleGenerated} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {roadmaps.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {roadmaps.map((roadmap) => {
+                const totalSteps = roadmap.steps?.length || 1;
+                const progress =
+                  ((roadmap.currentStepIndex || 0) / totalSteps) * 100;
+
+                return (
+                  <div
+                    key={roadmap.id}
+                    onClick={() => openRoadmap(roadmap)}
+                    className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 cursor-pointer hover:border-indigo-500/50 hover:bg-slate-900/80 transition-all group relative overflow-hidden"
+                  >
+                    {/* Topic Badge */}
+                    <div className="absolute top-4 right-4 bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full text-xs font-semibold capitalize border border-indigo-500/20">
+                      {roadmap.techSlug}
                     </div>
-                    <span className="text-[10px] text-slate-500">
-                      {Math.round(mastery * 100)}%
-                    </span>
+
+                    <h3 className="text-xl font-bold text-white mb-2 pr-20 line-clamp-2 leading-tight group-hover:text-indigo-300 transition-colors">
+                      {roadmap.title}
+                    </h3>
+
+                    <div className="mt-8">
+                      <div className="flex justify-between items-center mb-2 text-sm">
+                        <span className="text-slate-400 font-medium">
+                          Chapter {roadmap.currentStepIndex + 1} of {totalSteps}
+                        </span>
+                        <span className="text-indigo-400 font-bold">
+                          {Math.round(progress)}%
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
+
+          {roadmaps.length === 0 && !showGenerator && (
+            <div className="text-center py-20 border border-dashed border-slate-800 rounded-2xl">
+              <Sparkles className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <h2 className="text-xl font-medium text-slate-300">
+                No active roadmaps
+              </h2>
+              <p className="text-slate-500 mt-2">
+                Generate a personalized curriculum to get started.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "previewing") {
+    return (
+      <RoadmapPreview
+        title={roadmapTitle}
+        steps={steps}
+        isSaving={isSaving}
+        onCancel={() => setMode("dashboard")}
+        onSave={handleSaveRoadmap}
+        onRemove={(idx) => setSteps((s) => s.filter((_, i) => i !== idx))}
+        onReorder={(start, end) => {
+          const newSteps = [...steps];
+          const [moved] = newSteps.splice(start, 1);
+          newSteps.splice(end, 0, moved);
+          setSteps(newSteps);
+        }}
+      />
+    );
+  }
+
+  if (mode === "completed") {
+    return (
+      <div className="flex items-center justify-center h-full bg-background">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto ring-4 ring-emerald-500/30">
+            <Trophy className="w-12 h-12 text-emerald-400" />
+          </div>
+          <h2 className="text-3xl font-bold text-white">Roadmap Mastered!</h2>
+          <p className="text-slate-400 leading-relaxed">
+            You've completed all topics in <strong>{roadmapTitle}</strong>. Your
+            learner graph and mastery score have been updated.
+          </p>
+          <button
+            onClick={() => setMode("dashboard")}
+            className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all"
+          >
+            Back to Journey
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // mode === "learning"
+  return (
+    <div className="flex flex-col h-full bg-background">
+      {/* Header bar for learning view */}
+      <div className="h-16 px-6 border-b border-slate-800/50 flex items-center justify-between shrink-0 bg-slate-900/30 backdrop-blur-md">
+        <button
+          onClick={() => setMode("dashboard")}
+          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+        >
+          <ArrowLeft size={16} /> Back to Dashboard
+        </button>
+        <div className="flex items-center gap-3">
+          <Target className="text-indigo-400 w-5 h-5" />
+          <span className="text-white font-semibold truncate max-w-md">
+            {roadmapTitle}
+          </span>
+          <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase mapping-widest ml-2">
+            {techSlug}
+          </span>
         </div>
       </div>
 
-      {/* The Active Lesson / Quiz Panel */}
-      <div className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden relative shadow-2xl">
-        <AnimatePresence mode="wait">
-          {!quizMode ? (
-            <motion.div
-              key="lesson"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="flex flex-col h-full"
-            >
-              <div className="p-8 border-b border-slate-800">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-medium mb-4 uppercase tracking-wider">
-                  {activeLesson.type === "theory" ? (
-                    <BookOpen size={14} />
-                  ) : (
-                    <Code2 size={14} />
+      {/* Main content area */}
+      <div className="flex flex-1 overflow-hidden p-6 gap-6 relative">
+        {/* Left Sidebar: Curriculum list */}
+        <div className="w-1/3 max-w-sm bg-slate-900/50 border border-slate-800 rounded-2xl flex flex-col overflow-hidden shrink-0 shadow-lg relative z-10">
+          <div className="p-5 border-b border-slate-800 bg-slate-900/80">
+            <div className="flex justify-between items-center mb-1">
+              <h2 className="text-lg font-bold text-white">Curriculum</h2>
+              <span className="text-xs font-medium text-slate-500">
+                {currentStepIndex + 1} / {steps.length}
+              </span>
+            </div>
+
+            {/* Local Progress Bar */}
+            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-3">
+              <div
+                className="h-full bg-indigo-500 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${(currentStepIndex / steps.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            {steps.map((step, idx) => {
+              const isUnlocked = idx <= currentStepIndex;
+              const isActive = idx === currentStepIndex;
+              const isDone = idx < currentStepIndex;
+
+              return (
+                <div
+                  key={`${step.slug}-${idx}`}
+                  onClick={() => isUnlocked && setCurrentStepIndex(idx)}
+                  className={cn(
+                    "relative p-3.5 rounded-xl border transition-all duration-200",
+                    isActive
+                      ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]"
+                      : isDone
+                        ? "bg-emerald-500/5 border-emerald-500/20 cursor-pointer hover:bg-emerald-500/10"
+                        : isUnlocked
+                          ? "bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 cursor-pointer"
+                          : "bg-slate-900/30 border-slate-800/50 opacity-50 cursor-not-allowed",
                   )}
-                  {activeLesson.type} module
-                </span>
-                <h1 className="text-3xl font-bold text-white mb-4">
-                  {activeLesson.title}
-                </h1>
-                <p className="text-lg text-slate-300 leading-relaxed max-w-2xl">
-                  {activeLesson.description}
-                </p>
-              </div>
-
-              {activeLesson.codeSnippet && (
-                <div className="flex-1 p-8 bg-[#0a0f18] border-b border-slate-800 font-mono text-sm text-slate-300 overflow-auto">
-                  <pre>
-                    <code>{activeLesson.codeSnippet}</code>
-                  </pre>
-                </div>
-              )}
-
-              <div className="p-6 bg-slate-900 flex justify-end shrink-0">
-                <button
-                  onClick={() => setQuizMode(true)}
-                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-medium transition-colors"
                 >
-                  Start Interactive Check <ArrowRight size={18} />
-                </button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="quiz"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="flex flex-col h-full p-8 items-center justify-center text-center"
-            >
-              <Target size={48} className="text-indigo-400 mb-6" />
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Recall Challenge
-              </h2>
-              <p className="text-slate-400 mb-8 max-w-md">
-                Applying concept:{" "}
-                <span className="text-indigo-300 font-mono">
-                  {activeLesson.concept}
-                </span>
-              </p>
-
-              <div className="w-full max-w-2xl bg-[#0a0f18] border border-slate-800 rounded-xl p-6 mb-8 text-left">
-                <p className="text-slate-300 font-medium mb-4">
-                  Which of the following correctly catches an error from an
-                  awaited Promise?
-                </p>
-                <div className="space-y-3">
-                  <button className="w-full text-left p-4 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-indigo-500/50 hover:bg-indigo-500/10 text-slate-300 transition-colors">
-                    <code className="text-sm">await fetch().catch()</code>
-                  </button>
-                  <button
-                    onClick={simulateTopicCompletion} // Simulating correct answer
-                    className="w-full text-left p-4 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-slate-300 transition-colors"
-                  >
-                    <code className="text-sm">
-                      try &#123; await fetch() &#125; catch (e) &#123;&#125;
-                    </code>
-                  </button>
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      {isDone ? (
+                        <CheckCircle2
+                          size={18}
+                          className="text-emerald-400 shrink-0"
+                        />
+                      ) : !isUnlocked ? (
+                        <Lock size={16} className="text-slate-500 shrink-0" />
+                      ) : (
+                        <PlayCircle
+                          size={18}
+                          className="text-indigo-400 shrink-0"
+                        />
+                      )}
+                      <span
+                        className={cn(
+                          "text-sm font-semibold leading-tight",
+                          isActive
+                            ? "text-indigo-300"
+                            : isDone
+                              ? "text-slate-300"
+                              : "text-slate-400",
+                        )}
+                      >
+                        {step.name}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              );
+            })}
+          </div>
+        </div>
 
-              <p className="text-xs text-slate-500">
-                Completing this challenge will increase your Recall Score,
-                unlocking the next module.
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Right Panel: The actual lesson view */}
+        <div className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-2xl relative z-20">
+          <LessonPanel
+            key={steps[currentStepIndex].slug}
+            lesson={steps[currentStepIndex]}
+            techSlug={techSlug}
+            profileId={profileId}
+            isLastLesson={currentStepIndex === steps.length - 1}
+            onComplete={handleLessonComplete}
+          />
+        </div>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ved Code",
+  title: "VedCode",
   description:
     "A professional developer platform for learning, building, and exploring code.",
 };

@@ -142,7 +142,7 @@ export default function VaultExplorer({ initialSnippets }: { initialSnippets: Sn
             {/* Code Block */}
             <div className="relative group">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-                <div className="relative bg-[#0d0d0d] border border-white/10 rounded-lg overflow-hidden shadow-2xl">
+                <div className="relative bg-background border border-white/10 rounded-lg overflow-hidden shadow-2xl">
                     <div className="flex justify-between items-center px-4 py-2 border-b border-white/5 bg-white/[0.02]">
                         <div className="flex gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />

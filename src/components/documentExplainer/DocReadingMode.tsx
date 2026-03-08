@@ -232,7 +232,7 @@ export default function DocReadingMode() {
 
 
   return (
-    <div className="flex h-screen w-full bg-[#020617] text-slate-100 overflow-hidden font-sans selection:bg-blue-500/30">
+    <div className="flex flex-1 h-full w-full bg-background text-slate-100 overflow-hidden font-sans selection:bg-blue-500/30">
       {/* ── LEFT PANEL ── */}
       <div className="w-[400px] border-r border-slate-800/60 flex flex-col bg-slate-900/10 backdrop-blur-2xl z-10">
         <div className="p-8 pb-4">
@@ -295,7 +295,7 @@ export default function DocReadingMode() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col relative bg-[#020617]">
+      <div className="flex-1 flex flex-col relative bg-background">
         {/* Navigation */}
         <div className="h-20 border-b border-white/[0.03] flex items-center px-10 bg-[#020617]/40 backdrop-blur-md justify-between sticky top-0 z-20">
           <div className="flex items-center gap-2 p-1.5 bg-slate-900/40 rounded-[1.25rem] border border-white/[0.05]">
@@ -439,7 +439,7 @@ export default function DocReadingMode() {
                               </div>
                             </div>
                           </CardHeader>
-                          <CardContent className="p-0 h-[600px] w-full bg-[#020617]">
+                          <CardContent className="p-0 h-[600px] w-full bg-background">
                             <GraphCanvas 
                                 nodes={graphData.nodes} 
                                 edges={graphData.edges} 
@@ -523,7 +523,7 @@ export default function DocReadingMode() {
                             </h4>
                           </div>
                           <p className="text-sm text-red-300/60 leading-relaxed m-0 font-medium">
-                            VedaCode is currently auditing your project for
+                            VedCode is currently auditing your project for
                             architectural ripple effects. The system has
                             identified the following potential breakages.
                           </p>

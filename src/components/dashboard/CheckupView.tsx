@@ -1,75 +1,55 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Activity, BrainCircuit, Columns, Target } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { MasteryMeter } from '../intelligence/MasteryMeter';
 import { ConceptTimelineWidget, ConceptChange } from '../ui/ConceptTimelineWidget';
 import { ArchitecturalHeatmap } from './ArchitecturalHeatmap';
-
-// Mock Data for the demonstration of the Checkup Dashboard
-const mockHeatmapData = [
-    { name: 'src/lib/auth/authMiddleware.ts', stressScore: 0.85, couplingSize: 14 },
-    { name: 'src/components/App.tsx', stressScore: 0.62, couplingSize: 8 },
-    { name: 'src/lib/api/socketClient.ts', stressScore: 0.78, couplingSize: 11 },
-    { name: 'src/utils/formatters.ts', stressScore: 0.12, couplingSize: 2 },
-    { name: 'src/db/schema.ts', stressScore: 0.45, couplingSize: 15 },
-    { name: 'src/components/ui/Button.tsx', stressScore: 0.05, couplingSize: 32 },
-];
-
-const mockConceptChanges: ConceptChange[] = [
-    {
-        id: '1',
-        commitHash: 'a91f3cb',
-        conceptName: 'Promise Chains',
-        changeType: 'introduced',
-        confidence: 0.95,
-        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-    },
-    {
-        id: '2',
-        commitHash: 'f72aa9e',
-        conceptName: 'Async / Await',
-        changeType: 'introduced',
-        confidence: 0.92,
-        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-    },
-    {
-        id: '3',
-        commitHash: 'f72aa9e',
-        conceptName: 'Promise Chains',
-        changeType: 'removed',
-        confidence: 0.88,
-        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-    },
-    {
-        id: '4',
-        commitHash: 'f72aa9e',
-        conceptName: 'Async Error Handling',
-        changeType: 'removed', // or omitted in code
-        confidence: 0.65,
-        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        hasRegressionRisk: true
-    }
-];
+import { getArchitecturalHeatmap, getRecentConceptChanges, getUserCognitiveState } from '@/lib/actions/dashboardActions';
 
 export function CheckupView() {
-    // Top-level mastery metrics for the user's focus concepts
-    const highestRiskConcept = {
-        name: 'Async Error Propagation',
-        understandingScore: 0.45,
-        recallScore: 0.20,
-        masteryLevel: 'struggling'
-    };
+    const { data: session } = useSession();
+    const [heatmapData, setHeatmapData] = useState<any[]>([]);
+    const [conceptChanges, setConceptChanges] = useState<ConceptChange[]>([]);
+    const [cognitiveState, setCognitiveState] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
-    const bestConcept = {
-        name: 'React Server Components',
-        understandingScore: 0.88,
-        recallScore: 0.92,
-        masteryLevel: 'mastered'
-    };
+    useEffect(() => {
+        async function loadDashboard() {
+            if (session?.user) {
+                const user = session.user as any;
+                try {
+                    const [hData, cChanges, cState] = await Promise.all([
+                        getArchitecturalHeatmap(),
+                        getRecentConceptChanges(user.id),
+                        getUserCognitiveState(user.id)
+                    ]);
+                    setHeatmapData(hData || []);
+                    setConceptChanges(cChanges || []);
+                    setCognitiveState(cState);
+                } catch (error) {
+                    console.error("Failed to load dashboard data:", error);
+                }
+            }
+            setLoading(false);
+        }
+        loadDashboard();
+    }, [session]);
+
+    if (loading) {
+        return (
+            <div className="flex-1 flex items-center justify-center bg-background text-slate-400">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-xs font-bold uppercase tracking-widest">Analysing System...</span>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="flex flex-col h-full bg-[#0a0f18] text-foreground overflow-y-auto">
+        <div className="flex flex-col h-full bg-background text-foreground overflow-y-auto">
             {/* Header */}
             <header className="px-8 py-6 border-b border-white/5 bg-slate-900/50 sticky top-0 z-10 backdrop-blur-xl">
                 <div className="flex items-center gap-3">
@@ -93,49 +73,62 @@ export function CheckupView() {
                             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                                 <Target className="text-indigo-400" size={18} /> Cognitive State
                             </h2>
-                            <p className="text-sm text-slate-400 mb-6 leading-relaxed">
-                                A reflection of your structural knowledge in the current project, balancing theoretical understanding with recall strength.
-                            </p>
-                            
-                            <div className="space-y-6">
-                                <div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-xs font-semibold uppercase text-slate-500 tracking-wider">Focus Area: {highestRiskConcept.name}</span>
-                                        <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20">High Risk</span>
-                                    </div>
-                                    <MasteryMeter 
-                                        understandingScore={highestRiskConcept.understandingScore}
-                                        recallScore={highestRiskConcept.recallScore}
-                                        masteryLevel={highestRiskConcept.masteryLevel}
-                                    />
-                                </div>
+                            {cognitiveState ? (
+                                <>
+                                    <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                                        A reflection of your structural knowledge in the current project, balancing theoretical understanding with recall strength.
+                                    </p>
+                                    
+                                    <div className="space-y-6">
+                                        <div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-xs font-semibold uppercase text-slate-500 tracking-wider">Focus Area: {cognitiveState.highestRisk.name}</span>
+                                                <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20">High Risk</span>
+                                            </div>
+                                            <MasteryMeter 
+                                                understandingScore={cognitiveState.highestRisk.understandingScore}
+                                                recallScore={cognitiveState.highestRisk.recallScore}
+                                                masteryLevel={cognitiveState.highestRisk.masteryLevel}
+                                            />
+                                        </div>
 
-                                <div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-xs font-semibold uppercase text-slate-500 tracking-wider">Strongest: {bestConcept.name}</span>
+                                        <div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-xs font-semibold uppercase text-slate-500 tracking-wider">Strongest: {cognitiveState.best.name}</span>
+                                            </div>
+                                            <MasteryMeter 
+                                                understandingScore={cognitiveState.best.understandingScore}
+                                                recallScore={cognitiveState.best.recallScore}
+                                                masteryLevel={cognitiveState.best.masteryLevel}
+                                            />
+                                        </div>
                                     </div>
-                                    <MasteryMeter 
-                                        understandingScore={bestConcept.understandingScore}
-                                        recallScore={bestConcept.recallScore}
-                                        masteryLevel={bestConcept.masteryLevel}
-                                    />
+                                </>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-slate-600 text-xs italic">
+                                    Insufficient data to map cognitive state. Continue building to generate insights.
                                 </div>
-                            </div>
+                            )}
                         </section>
                     </div>
 
                     {/* Middle Column: Architectural Heatmap (Span 4) */}
                     <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
                         <section className="flex-1">
-                            {/* We just directly mount the component we built */}
-                            <ArchitecturalHeatmap data={mockHeatmapData} />
+                            {heatmapData.length > 0 ? (
+                                <ArchitecturalHeatmap data={heatmapData} />
+                            ) : (
+                                <div className="h-full bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-600 text-xs italic p-10 text-center">
+                                    No architectural metrics detected. Run the stress analyzer to populate this map.
+                                </div>
+                            )}
                         </section>
                     </div>
 
                     {/* Right Column: Concept Timeline (Span 4) */}
                     <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
                         <section className="flex-1 overflow-y-auto">
-                            <ConceptTimelineWidget changes={mockConceptChanges} />
+                            <ConceptTimelineWidget changes={conceptChanges} />
                         </section>
                     </div>
 
