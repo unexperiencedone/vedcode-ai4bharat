@@ -106,11 +106,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <div className="flex -space-x-3">
           {project.members.slice(0, 3).map((member, i) => (
             <img
-              key={member.id}
+              key={`${member.id}-${i}`}
               src={member.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&size=32&background=1e293b&color=fff`}
               className="w-8 h-8 rounded-full border-2 border-[#020617] object-cover ring-2 ring-transparent group-hover:ring-slate-800 transition-all duration-300"
               style={{ zIndex: 10 - i }}
               alt={member.name}
+              referrerPolicy="no-referrer"
             />
           ))}
           {project.members.length > 3 && (

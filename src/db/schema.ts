@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, uuid, serial, jsonb, boolean, real, customType } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, uuid, serial, jsonb, boolean, real, customType, primaryKey } from 'drizzle-orm/pg-core';
 import { relations } from "drizzle-orm";
 
 // Create custom vector type in case standard vector import has version issues
@@ -173,7 +173,9 @@ export const architectureMetrics = pgTable("architecture_metrics", {
 export const projectMembers = pgTable("project_members", {
   projectId: uuid("project_id").references(() => projects.id).notNull(),
   profileId: uuid("profile_id").references(() => profiles.id).notNull(),
-});
+}, (t) => ({
+  pk: primaryKey({ columns: [t.projectId, t.profileId] }),
+}));
 
 export const projectsRelations = relations(projects, ({ many }) => ({
   members: many(projectMembers),

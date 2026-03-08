@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { QuickMetrics } from "./QuickMetrics";
 import { LearnerIntelligencePanel } from "./LearnerIntelligencePanel";
 import { ProjectCard } from "./ProjectCard";
+import { NotificationDialog } from "./NotificationDialog";
 import { cn } from "@/lib/utils";
 
 export interface DashboardViewProps {
@@ -25,8 +26,36 @@ export function DashboardView({ data, handle }: DashboardViewProps) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [isNotifyOpen, setIsNotifyOpen] = useState(false);
 
   const projects = data?.projects || [];
+  const recentLogs = data?.recentLogs || [];
+
+  const notifications = [
+    ...recentLogs.map((log: any) => ({
+      id: log.id,
+      type: "system" as const,
+      title: log.action || "System Event",
+      message: log.message || "A system event was recorded",
+      timestamp: new Date(log.timestamp),
+      read: true,
+      details: {
+        cluster: log.cluster,
+        author: log.author,
+        target: log.target
+      }
+    })),
+    // Placeholder mentor insight if none in DB (for demo)
+    {
+      id: "mentor-1",
+      type: "mentor" as const,
+      title: "Growth Pattern Detected",
+      message: "I notice you're spending more time on async patterns. You've mastered 'Promises' 15% faster than average.",
+      timestamp: new Date(),
+      read: false,
+      details: "Pattern: ASYNC_MASTERY_PATHway. Recommendation: Try the 'Edge Runtime' module next."
+    }
+  ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   const stats = data?.stats || {};
 
   const filteredProjects = projects.filter((p: any) => {
@@ -89,14 +118,12 @@ export function DashboardView({ data, handle }: DashboardViewProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-3 shrink-0">
-          <button className="flex items-center justify-center w-9 h-9 border border-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all relative">
-            <Bell className="w-4 h-4" />
+          <button 
+            onClick={() => setIsNotifyOpen(true)}
+            className="flex items-center justify-center w-9 h-9 border border-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all relative group"
+          >
+            <Bell className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span className="absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-          </button>
-          <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)] hover:shadow-[0_0_25px_rgba(79,70,229,0.6)] hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 hidden group-hover:block" />
-            <Plus className="w-4 h-4" />
-            New Project
           </button>
         </div>
       </motion.div>
@@ -233,6 +260,12 @@ export function DashboardView({ data, handle }: DashboardViewProps) {
           </motion.div>
         </div>
       </div>
+      
+      <NotificationDialog 
+        open={isNotifyOpen} 
+        onOpenChange={setIsNotifyOpen} 
+        notifications={notifications} 
+      />
     </div>
   );
 }
