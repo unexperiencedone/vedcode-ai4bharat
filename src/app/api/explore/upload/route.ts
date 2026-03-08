@@ -68,6 +68,51 @@ export async function POST(req: NextRequest) {
                     }
                 }
             });
+
+            // 4.6 Red-Alert Trajectories (Cascading Paths) with BFS Depth Limit
+            // Animate edges that connect high-stress nodes up to a max depth
+            const MAX_DEPTH = 3;
+            const stressOrigins = new Set(nodes.filter(n => n.data.redAlert).map(n => n.id));
+            
+            // Build adjacency list for fast traversal
+            const adj = new Map<string, string[]>();
+            edges.forEach(e => {
+                if (!adj.has(e.source)) adj.set(e.source, []);
+                adj.get(e.source)!.push(e.target);
+            });
+
+            const visitedEdges = new Set<string>();
+            const queue: { nodeId: string, depth: number }[] = [];
+            
+            stressOrigins.forEach(id => queue.push({ nodeId: id, depth: 0 }));
+
+            while (queue.length > 0) {
+                const { nodeId, depth } = queue.shift()!;
+                if (depth >= MAX_DEPTH) continue;
+
+                const neighbors = adj.get(nodeId) || [];
+                for (const targetId of neighbors) {
+                    const edgeId = `${nodeId}->${targetId}`; // Assuming edge tracking
+                    const edge = edges.find(e => e.source === nodeId && e.target === targetId);
+                    
+                    if (edge && !visitedEdges.has(edge.id)) {
+                        visitedEdges.add(edge.id);
+                        edge.animated = true;
+                        
+                        // Fading out visually as depth increases
+                        const intensity = 1 - (depth / MAX_DEPTH);
+                        edge.style = { 
+                            stroke: "#ef4444", 
+                            strokeWidth: 1.5 + intensity * 1.5, 
+                            opacity: 0.3 + intensity * 0.6,
+                            filter: `drop-shadow(0 0 ${2 + intensity * 3}px rgba(239,68,68,${0.2 + intensity * 0.4}))`
+                        };
+
+                        queue.push({ nodeId: targetId, depth: depth + 1 });
+                    }
+                }
+            }
+
         } catch (e) {
             console.error("Failed to merge stress metrics:", e);
         }

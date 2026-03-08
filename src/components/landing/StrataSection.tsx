@@ -6,23 +6,23 @@ import { useScroll, useTransform, motion, useMotionValueEvent } from "framer-mot
 const strataCards = [
   {
     id: "01",
-    icon: "history_edu",
-    title: "Perpetual Archeology",
-    desc: "Code is not just data; it is history. Our strata storage ensures that every iteration is preserved in a decentralized lattice, protecting logic from the erosion of time.",
+    icon: "bubble_chart",
+    title: "Project Constellation",
+    desc: "Visualize your entire repository as an interactive galaxy. Analyze AST dependencies, identify stressful coupling, and map out the true architecture of your codebase.",
     align: "left",
   },
   {
     id: "02",
-    icon: "hub",
-    title: "Collective Consciousness",
-    desc: "Collaborate across dimensions. Annotation systems allow developers to leave cognitive imprints on their work, explaining the 'why' behind the 'how' for future civilizations.",
+    icon: "security",
+    title: "Context Guard",
+    desc: "Never break the build again. Simulates your exact code diffs and traces the ripple effect across the entire system using our intelligent impact analysis.",
     align: "right",
   },
   {
     id: "03",
-    icon: "architecture",
-    title: "The Technical Atelier",
-    desc: "A high-end sanctuary for the digital artisan. Minimalist, distraction-free, and optimized for deep work. This is where the future of logic is meticulously forged.",
+    icon: "psychology",
+    title: "JIT Learning & Mentor",
+    desc: "Stuck on a concept? Our Mentor Engine detects your learning gaps and delivers Just-In-Time explanations, active recall challenges, and personalized roadmaps.",
     align: "center",
   },
 ];
@@ -79,7 +79,7 @@ export default function StrataSection({ handedOver = false }: { handedOver?: boo
         {/* Heading remains at 25% screen height */}
         <div className="mt-[25vh] z-20">
           <TypingHeading 
-            text="STRUCTURAL STRATA" 
+            text="CORE PLATFORM" 
             isExiting={handedOver} 
             isVisible={showHeading}
           />
@@ -169,8 +169,8 @@ function Card({ card, isActive }: { card: any; isActive: boolean }) {
           </span>
         </div>
         <div className="flex-1">
-          <span className="text-[#0d46f2] text-xs tracking-[0.5em] uppercase mb-4 block font-display">
-            Eon {card.id}
+          <span className="text-[#0d46f2] text-xs tracking-[0.5em] uppercase mb-4 block font-display font-semibold">
+            Feature {card.id}
           </span>
           <h3 className="text-4xl mb-6 tracking-tight font-display text-white">
             {card.title}

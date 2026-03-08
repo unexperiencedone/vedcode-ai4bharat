@@ -7,15 +7,22 @@ import { RefreshCcw, X, BrainCircuit, CheckCircle2 } from 'lucide-react';
 interface RecallPrompterProps {
     conceptName: string;
     recallScore: number;
+    nextReviewAt?: Date | null;
     onStartChallenge: () => void;
 }
 
 export const RecallPrompter: React.FC<RecallPrompterProps> = ({ 
     conceptName, 
     recallScore,
+    nextReviewAt,
     onStartChallenge
 }) => {
-    const [isVisible, setIsVisible] = useState(recallScore < 0.45);
+    // Show if score is very low, OR if we've passed the scheduled review time
+    const [isVisible, setIsVisible] = useState(() => {
+        if (recallScore < 0.45) return true;
+        if (nextReviewAt && new Date() >= new Date(nextReviewAt)) return true;
+        return false;
+    });
 
     if (!isVisible) return null;
 
@@ -25,7 +32,7 @@ export const RecallPrompter: React.FC<RecallPrompterProps> = ({
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="fixed bottom-8 right-8 z-50 max-w-sm w-full"
+                className="fixed bottom-8 right-8 z-[9999] max-w-sm w-full"
             >
                 <div className="bg-slate-900 border border-indigo-500/30 rounded-2xl shadow-[0_0_50px_rgba(99,102,241,0.2)] overflow-hidden">
                     <div className="bg-indigo-600/10 px-4 py-3 flex items-center justify-between border-b border-indigo-500/20">

@@ -1,7 +1,9 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight,
@@ -22,6 +24,7 @@ const totalSteps = 6;
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { data: session, status, update } = useSession();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -32,6 +35,15 @@ export default function OnboardingPage() {
   const [q4LearningStyle, setQ4LearningStyle] = useState<string>("");
   const [q5Depth, setQ5Depth] = useState<string>("");
   const [q6Confidence, setQ6Confidence] = useState<number>(-1);
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
 
   const nextStep = () => {
     if (step < totalSteps) setStep(step + 1);
@@ -44,8 +56,13 @@ export default function OnboardingPage() {
 
   const submitProfile = async () => {
     setLoading(true);
-    // Fake profileId for now; in a real app this would come from Auth (Clerk, Supabase, etc.)
-    const profileId = "00000000-0000-0000-0000-000000000001"; // Placeholder until actual Auth is passed
+    const profileId = session?.user?.id;
+
+    if (!profileId) {
+      alert("No active session found. Please login again.");
+      setLoading(false);
+      return;
+    }
 
     // Map Q1
     let skillLevel = "beginner";
@@ -61,7 +78,8 @@ export default function OnboardingPage() {
     let learningStyle = "visual";
     if (q4LearningStyle === "code") learningStyle = "mixed";
     if (q4LearningStyle === "step") learningStyle = "textual";
-    if (q4LearningStyle === "summary") learningStyle = "advanced"; // actually mixed or textual, but mapping per user request
+    if (q4LearningStyle === "summary") learningStyle = "textual";
+
 
     // Map Q5
     let preferredDepth = "balanced";
@@ -83,7 +101,10 @@ export default function OnboardingPage() {
       inferredFromOnboarding: true,
     };
 
+    console.log("DEBUG: Submitting onboarding profile with payload:", payload);
+
     try {
+
       const res = await fetch("/api/learner/profile", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -91,8 +112,19 @@ export default function OnboardingPage() {
       });
 
       if (res.ok || res.status === 409) {
+        console.log("DEBUG: Onboarding successful, triggering session update...");
+        // Force session update so middleware recognizes onboarding is complete
+        const updatedSession = await update({ onboardingComplete: true });
+        console.log("DEBUG: Session updated result:", updatedSession);
+        
+        // Brief delay to allow cookie to settle before middleware sees it
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        
         router.push("/dashboard");
+
       } else {
+
+
         const errorData = await res.json();
         console.error("Failed to create profile", errorData);
         alert("Something went wrong saving your profile.");
@@ -135,7 +167,7 @@ export default function OnboardingPage() {
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-xs font-semibold tracking-wider text-neutral-400 mb-6 uppercase">
             <Zap className="w-3 h-3 text-amber-400" />
-            Initializing Ved Code Workspace
+            Initializing VedCode Workspace
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
             Configure Your Learning Profile

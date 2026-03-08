@@ -5,7 +5,7 @@ import * as path from 'path';
 
 export const maxDuration = 60;
 
-const RIPPLE_SYSTEM_PROMPT = `You are the "VedaCode Context Guard." Your mission is to perform a pre-execution impact analysis on a code change.
+const RIPPLE_SYSTEM_PROMPT = `You are the "VedCode Context Guard." Your mission is to perform a pre-execution impact analysis on a code change.
 
 # 🛰️ ANALYSIS PRINCIPLES
 1. BE PRECISE: Identify exactly what might break.

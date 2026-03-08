@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useEffect } from "react";
+import { useMemo, useCallback, useEffect, useState } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -37,10 +37,33 @@ export function GraphCanvas({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Sync when parent passes new data (useNodesState only reads initial value on mount)
+  // Filter & Control States
+  const [luminosityFilter, setLuminosityFilter] = useState(0);
+  const [gravityMultiplier, setGravityMultiplier] = useState(1);
+
+  // Sync when parent passes new data or controls change
   useEffect(() => {
-    setNodes(initialNodes);
-  }, [initialNodes, setNodes]);
+    // Apply filters and multipliers to initial nodes
+    const processedNodes = initialNodes.map((n) => {
+      const isVisible = ((n.data as any).luminosity ?? 1) >= luminosityFilter;
+      const baseSize = ((n.data as any).baseSize ||
+        (n.data as any).size ||
+        20) as number;
+
+      return {
+        ...n,
+        hidden: !isVisible,
+        data: {
+          ...n.data,
+          baseSize, // preserve original size
+          size: baseSize * gravityMultiplier,
+        },
+      };
+    });
+
+    setNodes(processedNodes);
+  }, [initialNodes, setNodes, luminosityFilter, gravityMultiplier]);
+
   useEffect(() => {
     setEdges(initialEdges);
   }, [initialEdges, setEdges]);
@@ -113,6 +136,61 @@ export function GraphCanvas({
           color="rgba(255,255,255,0.04)"
         />
       </ReactFlow>
+
+      {/* Constellation Controls Panel */}
+      <div className="absolute bottom-6 right-6 z-10 bg-[#0a0a0a]/90 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-2xl w-64 text-slate-200">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-4 border-b border-white/10 pb-2">
+          Constellation Controls
+        </h3>
+
+        <div className="space-y-5">
+          {/* Luminosity Filter */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-400">Luminosity Filter</span>
+              <span className="font-mono text-indigo-300">
+                {luminosityFilter.toFixed(1)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="0.9"
+              step="0.1"
+              value={luminosityFilter}
+              onChange={(e) => setLuminosityFilter(parseFloat(e.target.value))}
+              className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-[9px] text-slate-500 uppercase tracking-widest">
+              <span>All Files</span>
+              <span>Hubs Only</span>
+            </div>
+          </div>
+
+          {/* Gravity Multiplier (Node Size Scale) */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-400">Gravity Scale</span>
+              <span className="font-mono text-indigo-300">
+                {gravityMultiplier.toFixed(1)}x
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0.5"
+              max="2"
+              step="0.1"
+              value={gravityMultiplier}
+              onChange={(e) => setGravityMultiplier(parseFloat(e.target.value))}
+              className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-[9px] text-slate-500 uppercase tracking-widest">
+              <span>Min</span>
+              <span>Max</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Tooltip CSS */}
       <style>{`

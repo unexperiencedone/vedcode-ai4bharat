@@ -12,18 +12,25 @@ import {
   Brain,
   FileSearch,
   Settings,
+  Terminal,
+  Milestone,
+  LibraryBig,
 } from "lucide-react";
 
 const clusters = [
   // Core hub
   { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  // Phase 9: Primary Modes
+  { name: "IDE Workspace", icon: Terminal, href: "/workspace" },
+  { name: "Learning Roadmap", icon: Milestone, href: "/roadmap" },
   // Divider group: learning tools
   { name: "Learn", icon: BookOpen, href: "/learn" },
   { name: "Explore", icon: Compass, href: "/explore" },
   { name: "Guard", icon: ShieldAlert, href: "/guard" },
   // Tools
   { name: "Compiler", icon: Code2, href: "/compiler" },
-  { name: "Knowledge Studio", icon: Brain, href: "/vedacode" },
+  { name: "Knowledge Studio", icon: Brain, href: "/vedcode" },
+  { name: "Handbook", icon: LibraryBig, href: "/handbook" },
   { name: "Doc Explainer", icon: FileSearch, href: "/documentExplainer" },
 ];
 
@@ -52,7 +59,7 @@ export function ClusterRail() {
                   "group relative flex items-center justify-center w-full h-9 rounded-md transition-all duration-150",
                   isActive
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent",
                 )}
               >
                 <cluster.icon className="w-4 h-4 shrink-0" />

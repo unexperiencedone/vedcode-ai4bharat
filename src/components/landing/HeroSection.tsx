@@ -69,34 +69,20 @@ export default function HeroSection() {
             {" "}
             {/* Wrapper to lift text up slightly */}
             <p
-              className="text-[#0d46f2] tracking-[0.6em] text-xs mb-6 uppercase animate-pulse"
-              style={{ fontFamily: "'Orbitron', sans-serif" }}
+              className="text-[#0d46f2] tracking-[0.3em] text-xs mb-6 uppercase animate-pulse font-semibold"
             >
-              Temporal Node Active
+              Now Available in Early Access
             </p>
             <h1
-              className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight mb-6 tracking-tighter"
-              style={{
-                fontFamily: "'Orbitron', sans-serif",
-                background:
-                  "linear-gradient(to bottom, #e2e8f0 30%, #475569 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
+              className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight mb-6 tracking-tight"
             >
-              ECHOES OF LOGIC,
+              <span className="text-white">Understand code.</span>
               <br />
               <span
-                className="italic"
-                style={{
-                  background: "none",
-                  WebkitBackgroundClip: "unset",
-                  WebkitTextFillColor: "#0d46f2",
-                }}
+                className="italic text-[#0d46f2]"
               >
-                FORGED
-              </span>{" "}
-              IN TIME.
+                Build faster.
+              </span>
             </h1>
             <p className="text-lg text-[#94a3b8] max-w-2xl mx-auto font-light leading-relaxed tracking-wide">
               A cosmic repository for digital architecture. From the first line
@@ -113,20 +99,18 @@ export default function HeroSection() {
           >
             <Link
               href="/register"
-              className="group relative px-12 py-5 bg-[#0d46f2] text-white text-xs tracking-[0.4em] uppercase overflow-hidden transition-all hover:pr-16 shadow-[0_0_20px_rgba(13,70,242,0.3)] hover:shadow-[0_0_30px_rgba(13,70,242,0.5)]"
-              style={{ fontFamily: "'Orbitron', sans-serif" }}
+              className="group relative px-10 py-4 bg-[#0d46f2] text-white text-sm font-bold tracking-widest uppercase overflow-hidden transition-all hover:pr-14 shadow-[0_0_20px_rgba(13,70,242,0.3)] hover:shadow-[0_0_30px_rgba(13,70,242,0.5)] rounded-lg"
             >
-              <span className="relative z-10">Step Into The Void</span>
+              <span className="relative z-10">Start learning free</span>
               <span className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all material-symbols-outlined">
-                trending_flat
+                arrow_forward
               </span>
             </Link>
             <Link
-              href="/changelog"
-              className="px-12 py-5 border border-white/20 text-[#94a3b8] text-xs tracking-[0.4em] uppercase hover:border-[#0d46f2] hover:text-white transition-all backdrop-blur-sm"
-              style={{ fontFamily: "'Orbitron', sans-serif" }}
+              href="/docs"
+              className="px-10 py-4 border border-white/20 text-[#94a3b8] text-sm font-bold tracking-widest uppercase hover:border-[#0d46f2] hover:text-white transition-all backdrop-blur-sm rounded-lg"
             >
-              View Chronology
+              View Documentation
             </Link>
           </motion.div>
         </motion.div>
@@ -140,8 +124,8 @@ export default function HeroSection() {
             style={{ opacity: descendOpacity, y: descendY }}
             className="flex flex-col items-center gap-4"
           >
-            <span className="text-[10px] uppercase tracking-[0.2em] animate-pulse text-[#94a3b8]/60">
-              Scroll to Begin
+            <span className="text-[10px] uppercase tracking-widest font-semibold animate-pulse text-[#94a3b8]/60">
+              Scroll down
             </span>
             <span className="material-symbols-outlined text-sm animate-bounce text-[#94a3b8]/60">
               arrow_downward

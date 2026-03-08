@@ -1,14 +1,15 @@
-
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { profiles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import authConfig from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
     Google,
     GitHub,
@@ -49,10 +50,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
   },
   callbacks: {
+    ...authConfig.callbacks,
     async signIn({ user, account }) {
-      // For credentials, user is already validated in authorize()
       if (account?.provider === "credentials") return true;
-
       if (!user.email) return false;
 
       try {
@@ -89,41 +89,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
     async jwt({ token, user, trigger, session }) {
+      // Call the base config jwt for mapping/updates
+      // @ts-ignore
+      let updatedToken = await authConfig.callbacks.jwt({ token, user, trigger, session });
+
       if (user) {
-        // First sign-in only: fetch full profile from DB
-        // Cannot query DB on every refresh — Edge Runtime incompatible with postgres.js
         const profile = await db.query.profiles.findFirst({
           where: eq(profiles.email, user.email as string),
         });
         if (profile) {
-          token.handle = profile.handle;
-          token.role = profile.role;
-          token.onboardingComplete = profile.onboardingComplete;
-          token.image = profile.image;
+          updatedToken.id = profile.id;
+          updatedToken.handle = profile.handle;
+          updatedToken.role = profile.role;
+          updatedToken.onboardingComplete = profile.onboardingComplete;
+          updatedToken.image = profile.image;
+        } else {
+          updatedToken.id = user.id;
         }
       }
 
-      if (trigger === "update" && session) {
-        token.onboardingComplete = session.onboardingComplete;
-        if (session.handle) token.handle = session.handle;
-        if (session.role) token.role = session.role;
-        if (session.image) token.image = session.image;
-      }
-
-      return token;
+      return updatedToken;
     },
-    async session({ session, token }) {
-      if (session.user) {
-        // @ts-ignore
-        session.user.handle = token.handle;
-        // @ts-ignore
-        session.user.role = token.role;
-        // @ts-ignore
-        session.user.onboardingComplete = token.onboardingComplete;
-        // @ts-ignore
-        session.user.image = token.image;
-      }
-      return session;
-    },
+    // The 'session' callback is already spread from authConfig and handles mapping token -> session
   },
 });

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { learnerProfile, userConceptProgress } from '@/db/schema';
+import { learnerProfile, userConceptProgress, profiles } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -58,36 +58,14 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
+
     // Validate request body
     const result = CreateProfileSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json({ error: 'Invalid input', details: result.error.format() }, { status: 400 });
     }
 
-    const { 
-      profileId, 
-      skillLevel, 
-      skillScore, 
-      learningStyle, 
-      preferredDepth, 
-      confidenceScore, 
-      preferredLanguages, 
-      interestDomains, 
-      inferredFromOnboarding 
-    } = result.data;
-
-    // Check if profile already exists
-    const existing = await db.query.learnerProfile.findFirst({
-      where: eq(learnerProfile.profileId, profileId),
-    });
-
-    if (existing) {
-      return NextResponse.json({ error: 'Learner profile already exists for this user' }, { status: 409 });
-    }
-
-    // Create new profile
-    const [newProfile] = await db.insert(learnerProfile).values({
+    const {
       profileId,
       skillLevel,
       skillScore,
@@ -96,20 +74,59 @@ export async function POST(req: Request) {
       confidenceScore,
       preferredLanguages,
       interestDomains,
-      inferredFromOnboarding,
-    }).returning();
+      inferredFromOnboarding
+    } = result.data;
+
+    // Check if profile already exists
+    const existing = await db.query.learnerProfile.findFirst({
+      where: eq(learnerProfile.profileId, profileId),
+    });
+
+    if (existing) {
+      // If profile exists but user is still here, they might be in a stuck state.
+      // Repair the main profile status and return success.
+      await db.update(profiles)
+        .set({ onboardingComplete: true })
+        .where(eq(profiles.id, profileId));
+
+      return NextResponse.json(existing, { status: 200 });
+    }
+
+    // Create new profile and update main profile status in a transaction
+    const newProfile = await db.transaction(async (tx) => {
+      const [inserted] = await tx.insert(learnerProfile).values({
+        profileId,
+        skillLevel,
+        skillScore,
+        learningStyle,
+        preferredDepth,
+        confidenceScore,
+        preferredLanguages,
+        interestDomains,
+        inferredFromOnboarding,
+      }).returning();
+
+      await tx.update(profiles)
+        .set({ onboardingComplete: true })
+        .where(eq(profiles.id, profileId));
+
+      return inserted;
+    });
 
     return NextResponse.json(newProfile, { status: 201 });
+
+
   } catch (error: any) {
-    console.error('Error creating learner profile:', error.message);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('CRITICAL: Error creating learner profile:', error);
+    return NextResponse.json({ error: 'Internal Server Error', message: error.message }, { status: 500 });
   }
 }
+
 
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    
+
     // Validate request body
     const result = UpdateProfileSchema.safeParse(body);
     if (!result.success) {

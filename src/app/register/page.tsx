@@ -91,10 +91,9 @@ export default function RegisterPage() {
             </svg>
           </div>
           <h2
-            className="text-xl font-bold tracking-tighter uppercase text-white"
-            style={{ letterSpacing: "0.05em" }}
+            className="text-xl font-bold tracking-wide text-white"
           >
-            The Archive
+            VedCode
           </h2>
         </div>
 
@@ -103,18 +102,16 @@ export default function RegisterPage() {
           <div className="mb-6 flex items-center gap-2 text-primary">
             <span className="h-px w-8 bg-primary" />
             <span
-              className="uppercase text-xs font-bold tracking-[0.05em]"
-              style={{ fontFamily: "monospace" }}
+              className="uppercase text-xs font-bold tracking-widest"
             >
-              Encrypted Repository
+              Developer Intelligence
             </span>
           </div>
           <h1 className="text-5xl font-bold leading-tight mb-4">
-            Secure digital masonry for the elite.
+            Master your architecture.
           </h1>
-          <p className="text-[#e2e2e2]/60 text-lg">
-            Access a curated vault of architectural insights, high-fidelity
-            assets, and exclusive design documentation.
+          <p className="text-[#e2e2e2]/70 text-lg">
+            Join the next generation of engineers mastering complex codebases through continuous, AI-driven learning.
           </p>
         </div>
       </div>
@@ -137,20 +134,19 @@ export default function RegisterPage() {
             </svg>
           </div>
           <h2
-            className="text-sm font-bold tracking-tighter uppercase"
-            style={{ letterSpacing: "0.05em" }}
+            className="text-sm font-bold tracking-wide"
           >
-            The Archive
+            VedCode
           </h2>
         </div>
 
         <div className="w-full max-w-[440px] flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <h2 className="text-3xl font-bold tracking-tight text-white">
-              Request Access
+              Create an account
             </h2>
             <p className="text-[#e2e2e2]/50 text-sm">
-              Submit your credentials for vault verification.
+              Enter your details to get started with VedCode.
             </p>
           </div>
 
@@ -164,8 +160,7 @@ export default function RegisterPage() {
             {/* Full Name */}
             <div className="flex flex-col gap-2">
               <label
-                className="uppercase text-[10px] text-[#e2e2e2]/60 font-medium ml-1 tracking-[0.05em]"
-                style={{ fontFamily: "monospace" }}
+                className="uppercase text-xs text-[#e2e2e2]/80 font-medium ml-1"
               >
                 Full Name
               </label>
@@ -184,8 +179,7 @@ export default function RegisterPage() {
             {/* Email Address */}
             <div className="flex flex-col gap-2">
               <label
-                className="uppercase text-[10px] text-[#e2e2e2]/60 font-medium ml-1 tracking-[0.05em]"
-                style={{ fontFamily: "monospace" }}
+                className="uppercase text-xs text-[#e2e2e2]/80 font-medium ml-1"
               >
                 Email Address
               </label>
@@ -204,8 +198,7 @@ export default function RegisterPage() {
             {/* Password */}
             <div className="flex flex-col gap-2">
               <label
-                className="uppercase text-[10px] text-[#e2e2e2]/60 font-medium ml-1 tracking-[0.05em]"
-                style={{ fontFamily: "monospace" }}
+                className="uppercase text-xs text-[#e2e2e2]/80 font-medium ml-1"
               >
                 Password
               </label>
@@ -230,16 +223,22 @@ export default function RegisterPage() {
                 type="checkbox"
               />
               <label
-                className="text-xs text-[#e2e2e2]/40 leading-relaxed"
+                className="text-xs text-[#e2e2e2]/60 leading-relaxed"
                 htmlFor="terms"
               >
-                I acknowledge that &apos;The Archive&apos; is an invitation-only
-                repository and I agree to the{" "}
+                I agree to the{" "}
                 <Link
                   href="#"
-                  className="text-[#e2e2e2]/80 underline underline-offset-4"
+                  className="text-primary hover:text-primary/80 transition-colors"
                 >
-                  Vault Confidentiality Agreement
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="#"
+                  className="text-primary hover:text-primary/80 transition-colors"
+                >
+                  Privacy Policy
                 </Link>
                 .
               </label>
@@ -252,10 +251,9 @@ export default function RegisterPage() {
               disabled={loading}
             >
               <span
-                className="uppercase tracking-widest text-sm"
-                style={{ fontFamily: "monospace" }}
+                className="font-bold text-sm"
               >
-                {loading ? "Processing..." : "Request Access"}
+                {loading ? "Creating account..." : "Sign Up"}
               </span>
               <svg
                 className="w-4 h-4 group-hover:translate-x-1 transition-transform"
@@ -276,8 +274,8 @@ export default function RegisterPage() {
           {/* Divider */}
           <div className="relative flex items-center">
             <div className="flex-grow border-t border-white/5" />
-            <span className="mx-4 flex-shrink-0 text-xs font-bold tracking-widest text-[#e2e2e2]/30 uppercase">
-              Or connect via
+            <span className="mx-4 flex-shrink-0 text-xs font-medium text-[#e2e2e2]/40">
+              Or continue with
             </span>
             <div className="flex-grow border-t border-white/5" />
           </div>
@@ -342,11 +340,9 @@ export default function RegisterPage() {
         {/* Bottom decorative */}
         <div className="absolute bottom-8 right-8 hidden lg:block">
           <p
-            className="uppercase text-[10px] text-[#e2e2e2]/20 tracking-[0.05em]"
-            style={{ fontFamily: "monospace" }}
+            className="text-[12px] text-[#e2e2e2]/40 font-medium"
           >
-            System Status: <span className="text-emerald-500">Online</span> //
-            v4.0.2
+            VedCode v4.0.2
           </p>
         </div>
       </div>

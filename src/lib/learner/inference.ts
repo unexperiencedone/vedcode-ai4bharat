@@ -151,6 +151,48 @@ export async function inferSkillLevel(profileId: string, latestSignal?: any) {
 }
 
 /**
+ * Calculate retention probability using Ebbinghaus Forgetting Curve formula: R = e^(-t/S)
+ * Where:
+ * R = Retention probability (0 to 1)
+ * t = Time elapsed since last review (in days)
+ * S = Relative strength of memory (based on mastery and repetitions)
+ */
+export function calculateRetentionProbability(
+  lastReviewed: Date | null,
+  repetitions: number,
+  understandingScore: number
+): number {
+  if (!lastReviewed) return 1.0;
+
+  const now = new Date();
+  const timeElapsedDays = Math.max(0, (now.getTime() - lastReviewed.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Base strength increases with repetitions and understanding
+  const baseStrength = Math.max(1, repetitions * 1.5) * Math.max(0.5, understandingScore * 2);
+  
+  // Ebbinghaus formula
+  const retention = Math.exp(-timeElapsedDays / baseStrength);
+  return Math.min(1.0, Math.max(0.0, retention));
+}
+
+/**
+ * Determine the next review time based on current repetitions (Spaced Repetition)
+ */
+function getNextReviewIntervalDays(repetitions: number, scoreDelta: number): number {
+  if (scoreDelta < 0) return 1; // If they failed/decayed, review tomorrow
+  
+  // Basic spaced intervals: 1d, 3d, 7d, 14d, 30d, 90d
+  switch (repetitions) {
+    case 0: return 1; // +24h exactly for first active recall
+    case 1: return 3;
+    case 2: return 7;
+    case 3: return 14;
+    case 4: return 30;
+    default: return 90;
+  }
+}
+
+/**
  * Update mastery for a specific concept
  * Rules:
  * 1. Understanding capped at 0.6 from passive "reading" sources.
@@ -172,9 +214,16 @@ export async function updateConceptMastery(
       )
     });
 
+    const now = new Date();
+
     if (existing) {
-      let newUnderstanding = existing.understandingScore || 0;
+      // Apply Ebbinghaus decay before adding new delta
+      const retention = calculateRetentionProbability(existing.lastReviewed || existing.firstEncounteredAt, existing.repetitions || 0, existing.understandingScore || 0);
+      
+      let decayedUnderstanding = (existing.understandingScore || 0) * retention;
+      let newUnderstanding = decayedUnderstanding;
       let newRecall = existing.recallScore || 0;
+      let newRepetitions = existing.repetitions || 0;
 
       if (type === 'understanding') {
         // Rule 1: Cap passive growth at 0.6
@@ -186,6 +235,8 @@ export async function updateConceptMastery(
       } else {
         // Rule 2: Recall grew via retrieval
         newRecall = Math.min(1.0, Math.max(0.0, newRecall + delta));
+        // Only increment repetitions on active recall attempts
+        newRepetitions += 1;
       }
 
       // Rule 3: Mastery Favoring Recall
@@ -195,13 +246,18 @@ export async function updateConceptMastery(
       if (masteryScore > 0.8) newLevel = 'mastered';
       else if (masteryScore > 0.4) newLevel = 'familiar';
 
+      // Schedule Next Review (T+24h or Spaced Repetition)
+      const intervalDays = getNextReviewIntervalDays(newRepetitions, delta);
+      const nextReviewAt = new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+
       await db.update(userConceptProgress)
         .set({
           understandingScore: newUnderstanding,
           recallScore: newRecall,
           masteryLevel: newLevel,
-          lastReviewed: new Date(),
-          lastRecallAt: type === 'recall' ? new Date() : existing.lastRecallAt
+          lastReviewed: now,
+          nextReviewAt: nextReviewAt,
+          repetitions: newRepetitions,
         })
         .where(eq(userConceptProgress.id, existing.id));
     } else {
@@ -209,6 +265,9 @@ export async function updateConceptMastery(
       const rStart = type === 'recall' ? Math.max(0, delta) : 0;
 
       const masteryScore = (uStart * 0.45) + (rStart * 0.55);
+      
+      // First review is always exactly T+24h
+      const nextReviewAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
       await db.insert(userConceptProgress).values({
         profileId,
@@ -216,7 +275,10 @@ export async function updateConceptMastery(
         understandingScore: uStart,
         recallScore: rStart,
         masteryLevel: masteryScore > 0.4 ? 'familiar' : 'learning',
-        lastRecallAt: type === 'recall' ? new Date() : null
+        firstEncounteredAt: now,
+        lastReviewed: now,
+        nextReviewAt: nextReviewAt,
+        repetitions: 0
       });
     }
   } catch (error: any) {

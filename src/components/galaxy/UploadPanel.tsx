@@ -7,13 +7,8 @@ import type { ConstellationStats } from '@/lib/constellation/cache';
 
 interface UploadPanelProps {
     onGraphReady: (nodes: Node[], edges: Edge[], stats: ConstellationStats) => void;
+    defaultUrl?: string; // Pre-fill the input from localStorage cache
 }
-
-const EXAMPLE_REPOS = [
-    'https://github.com/vercel/next.js',
-    'https://github.com/shadcn-ui/ui',
-    'https://github.com/pmndrs/zustand',
-];
 
 const PROGRESS_MESSAGES = [
     'Connecting to GitHub…',
@@ -25,8 +20,9 @@ const PROGRESS_MESSAGES = [
     'Almost there…',
 ];
 
-export function UploadPanel({ onGraphReady }: UploadPanelProps) {
-    const [repoUrl, setRepoUrl] = useState('');
+export function UploadPanel({ onGraphReady, defaultUrl }: UploadPanelProps) {
+    const [repoUrl, setRepoUrl] = useState(defaultUrl || '');
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [progressIdx, setProgressIdx] = useState(0);
@@ -166,23 +162,6 @@ export function UploadPanel({ onGraphReady }: UploadPanelProps) {
                     </div>
                 )}
 
-                {/* Example repos */}
-                {!loading && !error && (
-                    <div className="flex flex-col items-center gap-2">
-                        <p className="text-xs text-muted-foreground">Try an example:</p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {EXAMPLE_REPOS.map((repo) => (
-                                <button
-                                    key={repo}
-                                    onClick={() => setRepoUrl(repo)}
-                                    className="text-xs px-3 py-1.5 rounded-full border border-border/50 bg-card/60 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
-                                >
-                                    {repo.replace('https://github.com/', '')}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
 
                 {/* Legend */}
                 <div className="flex items-center gap-6 text-xs text-muted-foreground">

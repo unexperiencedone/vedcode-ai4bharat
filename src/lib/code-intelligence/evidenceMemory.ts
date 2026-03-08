@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { mentorEvidencePatterns, mentorInsightLog } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 
 export async function logInsight(
     profileId: string, 
@@ -31,7 +31,7 @@ export async function isInsightOnCooldown(profileId: string, insightType: string
                 eq(mentorInsightLog.insightType, insightType)
             )
         )
-        .orderBy((fields) => fields.shownAt)
+        .orderBy(asc(mentorInsightLog.shownAt))
         .limit(1);
 
     if (logs.length === 0) return false;

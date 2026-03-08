@@ -17,7 +17,7 @@ export function Footer() {
             A
           </div>
           <span className="text-muted-foreground text-sm">
-            © {new Date().getFullYear()} Ved Code
+            © {new Date().getFullYear()} VedCode
           </span>
         </div>
         <div className="flex gap-6 text-sm text-muted-foreground">

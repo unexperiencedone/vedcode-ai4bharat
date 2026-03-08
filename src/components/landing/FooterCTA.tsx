@@ -98,29 +98,28 @@ export default function FooterCTA() {
         />
 
         {/* Split Heading */}
-        <div className="flex justify-center gap-4 md:gap-8 mb-12 overflow-hidden relative z-10">
+        <div className="flex justify-center flex-col md:flex-row gap-4 md:gap-8 mb-12 overflow-hidden relative z-10 text-center">
           <motion.h2
             variants={leftHeadingVariants}
             style={{ fontFamily: "'Orbitron', sans-serif" }}
             className="text-5xl md:text-7xl tracking-tight text-white"
           >
-            BECOME
+            MASTER YOUR
           </motion.h2>
           <motion.h2
             variants={rightHeadingVariants}
             style={{ fontFamily: "'Orbitron', sans-serif" }}
             className="text-5xl md:text-7xl tracking-tight text-white"
           >
-            ETERNAL.
+            CODEBASE.
           </motion.h2>
         </div>
 
         <motion.p
           variants={textVariants}
-          className="text-xl text-[#94a3b8] mb-16 leading-relaxed font-light"
+          className="text-xl text-[#94a3b8] mb-16 leading-relaxed font-light max-w-2xl mx-auto"
         >
-          Join the ranks of architects who build for the long-term. Your code
-          deserves a legacy that transcends the ephemeral.
+          Stop wrestling with fragmented documentation and hidden dependencies. Elevate your engineering with VedCode.
         </motion.p>
 
         {/* Morphing CTA */}
@@ -128,21 +127,18 @@ export default function FooterCTA() {
           variants={ctaContainerVariants}
           className="h-16 bg-[#e2e8f0] overflow-hidden flex items-center justify-center relative hover:bg-[#0d46f2] hover:text-white transition-colors cursor-pointer"
         >
-          <Link
-            href="/register"
-            className="absolute inset-0 flex items-center justify-center w-full h-full"
-          >
-            <motion.span
-              variants={ctaTextVariants}
-              style={{
-                fontFamily: "'Orbitron', sans-serif",
-              }}
-              className="text-[#080b14] text-[10px] md:text-xs tracking-[0.5em] uppercase whitespace-nowrap"
+            <Link
+              href="/register"
+              className="absolute inset-0 flex items-center justify-center w-full h-full"
             >
-              Initialize Connection
-            </motion.span>
-          </Link>
-        </motion.div>
+              <motion.span
+                variants={ctaTextVariants}
+                className="text-white bg-[#0d46f2] w-full h-full flex items-center justify-center text-sm md:text-base font-bold tracking-widest uppercase hover:bg-[#0d46f2]/90 transition-colors"
+              >
+                Get Started Free
+              </motion.span>
+            </Link>
+          </motion.div>
       </motion.div>
     </section>
   );

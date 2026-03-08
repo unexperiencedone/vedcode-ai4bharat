@@ -19,7 +19,7 @@ export async function getContextExplainer(
 ): Promise<ContextualExplanation | null> {
     try {
         const prompt = `
-            You are an elite developer mentor for Ved Code. 
+            You are an elite developer mentor for VedCode. 
             
             REFERENCE CONCEPT: "${conceptName}"
             MENTAL MODEL: "${mentalModel}"

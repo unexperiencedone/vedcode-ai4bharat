@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     const lineCount = content.split('\n').length;
 
-    const prompt = `You are VedaCode, an elite software architecture teacher.
+    const prompt = `You are VedCode, an elite software architecture teacher.
 
 Analyze this ${language || ''} file: "${filePath}"
 It has ${lineCount} lines total.

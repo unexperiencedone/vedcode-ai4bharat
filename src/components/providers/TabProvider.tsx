@@ -96,7 +96,7 @@ function getTitleFromPathname(pathname: string) {
   if (pathname === "/explore") return "Explore";
   if (pathname === "/guard") return "Guard";
   if (pathname === "/compiler") return "Compiler";
-  if (pathname === "/vedacode") return "Knowledge Studio";
+  if (pathname === "/vedcode") return "Knowledge Studio";
   if (pathname === "/documentExplainer") return "Doc Explainer";
   if (pathname === "/vault") return "Vault";
   if (pathname.startsWith("/vault/")) return `Vault · ${pathname.split("/").pop()}`;

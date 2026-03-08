@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'concept is required' }, { status: 400 });
     }
 
-    const prompt = `You are VedaCode, an expert software architecture mentor.
+    const prompt = `You are VedCode, an expert software architecture mentor.
 A developer just encountered the concept "${concept}" in ${language || 'code'}.
 
 Context snippet where they saw it:

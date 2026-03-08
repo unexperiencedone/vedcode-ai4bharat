@@ -6,32 +6,32 @@ import Link from "next/link";
 
 const ingestions = [
   {
-    tag: "AI Synthesis",
-    name: "Neural Net Core",
-    desc: "Optimization algorithms for low-latency inference.",
+    tag: "Universal Scraper",
+    name: "Doc Ingestor",
+    desc: "Automated extraction of prerequisites and mental models from any documentation.",
     hasIcon: false,
     color: "bg-green-500",
   },
   {
-    tag: "System Logic",
-    name: "Rust-Lattice",
-    desc: "Distributed key-value store implementation.",
-    icon: "dns",
+    tag: "Active Recall",
+    name: "Mastery Engine",
+    desc: "Spaced repetition using Ebbinghaus decay formulas to solidify your understanding.",
+    icon: "model_training",
     hasIcon: true,
     color: "bg-yellow-500",
   },
   {
-    tag: "Visual Form",
-    name: "Void UI Kit",
-    desc: "Brutalist component library for the web.",
+    tag: "Guided Path",
+    name: "Roadmap Player",
+    desc: "Dynamically generated step-by-step curricula tailored to your project needs.",
     hasIcon: false,
     color: "bg-blue-500",
   },
   {
-    tag: "Security",
-    name: "Cipher-Stream",
-    desc: "End-to-end encrypted stream processing.",
-    icon: "lock",
+    tag: "Skill Tree",
+    name: "Knowledge Map",
+    desc: "A React Flow interactive graph charting the relationships between all concepts.",
+    icon: "hub",
     hasIcon: true,
     color: "bg-purple-500",
   },
@@ -83,13 +83,13 @@ export default function IngestionsSection({
               className="text-[#0d46f2] text-xs tracking-[0.5em] uppercase mb-4 block"
               style={{ fontFamily: "'Orbitron', sans-serif" }}
             >
-              Registry
+              Intelligence
             </span>
             <h2
               className="text-5xl tracking-tighter text-white"
               style={{ fontFamily: "'Orbitron', sans-serif" }}
             >
-              RECENT INGESTIONS
+              KNOWLEDGE STUDIO
             </h2>
           </motion.div>
           <motion.div

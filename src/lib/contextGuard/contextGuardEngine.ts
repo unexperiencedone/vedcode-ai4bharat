@@ -15,7 +15,7 @@ export interface GuardResult {
 
 /**
  * Context Guard Engine
- * The main orchestrator for the Ved Code "Reasoning Engine".
+ * The main orchestrator for the VedCode "Reasoning Engine".
  */
 export class ContextGuardEngine {
   private astDiff: ASTDiff;

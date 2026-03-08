@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation plan converts the VedaCode design into a series of incremental development tasks. The approach prioritizes frontend components with static data first (Phase 1 MVP focus), then progressively adds AI backend services. Each task builds on previous work to create a cohesive developer learning platform with ProjectConstellation visualization, JIT Explainer system, and proactive micro-challenges.
+This implementation plan converts the VedCode design into a series of incremental development tasks. The approach prioritizes frontend components with static data first (Phase 1 MVP focus), then progressively adds AI backend services. Each task builds on previous work to create a cohesive developer learning platform with ProjectConstellation visualization, JIT Explainer system, and proactive micro-challenges.
 
 ## Tasks
 

@@ -48,7 +48,7 @@ export function Navbar({ user }: NavbarProps) {
               A
             </div>
             <span className="font-semibold text-foreground tracking-tight">
-              Ved Code
+              VedCode
             </span>
           </Link>
 

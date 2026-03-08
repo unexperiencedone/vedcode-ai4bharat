@@ -25,7 +25,7 @@ export function SystemFooter() {
         </span>
       </div>
       <span className="text-[10px] text-muted-foreground/30 font-medium">
-        Ved Code · {new Date().getFullYear()}
+        VedCode · {new Date().getFullYear()}
       </span>
     </footer>
   );

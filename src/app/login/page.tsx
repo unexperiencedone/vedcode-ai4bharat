@@ -13,6 +13,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const searchParams =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : null;
+  const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -26,7 +32,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Invalid email or password");
       } else {
-        router.push("/dashboard");
+        router.push(callbackUrl);
       }
     } catch {
       setError("Something went wrong");
@@ -34,6 +40,7 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
   return (
     <div className="relative flex h-screen w-full overflow-hidden bg-[#0a0a0a] text-[#e2e2e2] selection:bg-primary selection:text-white">
       {/* Grain Overlay */}
@@ -62,8 +69,8 @@ export default function LoginPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-xl font-bold tracking-[0.2em] text-white">
-              THE ARCHIVE
+            <h2 className="text-xl font-bold tracking-wide text-white">
+              VedCode
             </h2>
           </header>
 
@@ -71,10 +78,10 @@ export default function LoginPage() {
           <div className="mx-auto flex w-full max-w-md flex-col justify-center py-4">
             <div className="mb-6">
               <h1 className="text-4xl font-bold tracking-tight text-white mb-2">
-                Awaiting Credentials
+                Welcome back
               </h1>
               <p className="text-[#e2e2e2]/60 font-medium">
-                Secure System Access Required
+                Sign in to your account to continue
               </p>
             </div>
 
@@ -87,7 +94,7 @@ export default function LoginPage() {
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label
-                  className="text-sm font-semibold tracking-wider text-[#e2e2e2]/80 uppercase"
+                  className="text-sm font-medium text-[#e2e2e2]/80"
                   htmlFor="email"
                 >
                   Email Address
@@ -109,7 +116,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label
-                    className="text-sm font-semibold tracking-wider text-[#e2e2e2]/80 uppercase"
+                    className="text-sm font-medium text-[#e2e2e2]/80"
                     htmlFor="password"
                   >
                     Password
@@ -138,17 +145,17 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg bg-primary py-3 text-sm font-bold tracking-[0.1em] text-white uppercase shadow-[0_4px_20px_rgba(13,70,242,0.3)] hover:shadow-[0_4px_25px_rgba(13,70,242,0.5)] hover:bg-primary/90 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-lg bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_20px_rgba(13,70,242,0.3)] hover:shadow-[0_4px_25px_rgba(13,70,242,0.5)] hover:bg-primary/90 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Connecting..." : "Initialize Session"}
+                {loading ? "Signing in..." : "Sign in"}
               </button>
             </form>
 
             {/* Divider */}
             <div className="relative my-5 flex items-center py-2">
               <div className="flex-grow border-t border-white/5" />
-              <span className="mx-4 flex-shrink-0 text-xs font-bold tracking-widest text-[#e2e2e2]/30 uppercase">
-                Connect via Network
+              <span className="mx-4 flex-shrink-0 text-xs font-medium text-[#e2e2e2]/40">
+                Or continue with
               </span>
               <div className="flex-grow border-t border-white/5" />
             </div>
@@ -201,13 +208,13 @@ export default function LoginPage() {
 
           {/* Footer */}
           <footer className="flex items-center justify-between text-xs font-medium text-[#e2e2e2]/40">
-            <p>© 2025 THE ARCHIVE PROTOCOL</p>
+            <p>© 2025 VedCode</p>
             <div className="flex gap-4">
               <Link
                 href="/register"
                 className="hover:text-primary transition-colors"
               >
-                Request Access
+                Create an account
               </Link>
               <span className="text-white/10">|</span>
               <Link
@@ -241,28 +248,45 @@ export default function LoginPage() {
           <div className="absolute inset-0 z-2 bg-gradient-to-t from-[#0a0a0a] via-transparent to-[#0a0a0a]/30" />
 
           {/* Tech Grid */}
-          <div className="absolute inset-0 pointer-events-none opacity-20 z-10" style={{
-            backgroundImage: 'radial-gradient(#0d46f2 1px, transparent 1px)',
-            backgroundSize: '40px 40px'
-          }} />
+          <div
+            className="absolute inset-0 pointer-events-none opacity-20 z-10"
+            style={{
+              backgroundImage: "radial-gradient(#0d46f2 1px, transparent 1px)",
+              backgroundSize: "40px 40px",
+            }}
+          />
 
           {/* Floating Badge */}
           <div className="absolute bottom-16 right-16 flex flex-col items-end z-20">
             <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/20 text-primary">
-                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                <svg
+                  className="w-7 h-7"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                  />
                 </svg>
               </div>
               <div>
-                <p className="text-xs font-bold tracking-widest text-[#e2e2e2]/40 uppercase">System Status</p>
-                <p className="text-lg font-bold text-white tracking-tight">ENCRYPTED NODE 01-A</p>
+                <p className="text-xs font-medium text-[#e2e2e2]/60 uppercase tracking-widest">
+                  Platform Status
+                </p>
+                <p className="text-lg font-bold text-white tracking-tight">
+                  All systems operational
+                </p>
               </div>
             </div>
             <div className="mt-4 flex gap-6 text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase">
-              <span>Lvl 4 Security</span>
-              <span>Zero Knowledge</span>
-              <span>Multi-Region</span>
+              <span>Enterprise Grade</span>
+              <span>Secure</span>
+              <span>Reliable</span>
             </div>
           </div>
         </div>

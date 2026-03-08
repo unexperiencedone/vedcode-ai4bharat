@@ -1,41 +1,35 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { MentorInsightWidget } from './MentorInsightWidget';
-
-interface InsightPayload {
-    type: 'architecture' | 'learning' | 'refactor';
-    patternType: string;
-    severityScore: number;
-    title: string;
-    actionableAdvice: string;
-    relatedConcepts: string[];
-}
+import React, { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { MentorInsightWidget } from "./MentorInsightWidget";
+import { getDynamicInsight } from "@/lib/actions/insightActions";
 
 export function GlobalMentorOverlay() {
-    const [insight, setInsight] = useState<InsightPayload | null>(null);
+  const [insight, setInsight] = useState<any>(null);
+  const pathname = usePathname();
 
-    useEffect(() => {
-        // In a real application, this would listen to an EventSource (SSE), WebSockets, or a Redux store.
-        // For demonstration of the UX Consolidation layer, we'll simulate a delayed arrival of a highly critical insight
-        // simulating the RegressionCorrelationEngine calculating a risk_score > threshold.
+  useEffect(() => {
+    // Reset insight on path change to allow new triggers
+    setInsight(null);
+    
+    const timer = setTimeout(async () => {
+      try {
+        const dynamicInsight = await getDynamicInsight(pathname);
+        if (dynamicInsight) {
+          setInsight(dynamicInsight);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dynamic insight:", error);
+      }
+    }, 45000); // 45s delay for a more natural pop-up
 
-        const timer = setTimeout(() => {
-            // Simulated high-severity insight breaching the "quiet" threshold
-            setInsight({
-                type: 'architecture',
-                patternType: 'async_error_handling_regression',
-                severityScore: 0.85,
-                title: 'Concept Regression Detected',
-                actionableAdvice: 'The failure likely involves the Async/Await concept introduced in your last commit. Review asynchronous error propagation.',
-                relatedConcepts: ['async_await', 'error_handling']
-            });
-        }, 8000); // Wait 8 seconds before interrupting the user
 
-        return () => clearTimeout(timer);
-    }, []);
+    return () => clearTimeout(timer);
+  }, [pathname]);
 
-    if (!insight) return null; // STRICT RULE: Remain completely hidden unless triggered
+  if (!insight) return null;
 
-    return <MentorInsightWidget initialInsight={insight} />;
+  return <MentorInsightWidget initialInsight={insight} />;
 }
+

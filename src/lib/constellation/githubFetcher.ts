@@ -45,7 +45,7 @@ const MAX_FILE_SIZE = 100_000; // 100KB
 function headers(): Record<string, string> {
     const h: Record<string, string> = {
         Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'VedaCode-Constellation',
+        'User-Agent': 'VedCode-Constellation',
     };
     const token = process.env.GITHUB_TOKEN;
     if (token) h['Authorization'] = `Bearer ${token}`;

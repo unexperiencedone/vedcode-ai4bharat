@@ -23,7 +23,7 @@ export function CommandHeader() {
           <FolderOpen className="text-white w-3 h-3" />
         </div>
         <span className="font-semibold text-sm text-foreground hidden lg:block tracking-tight">
-          Ved Code
+          VedCode
         </span>
       </Link>
 
@@ -36,14 +36,16 @@ export function CommandHeader() {
               "group flex items-center h-full px-4 gap-2 border-r border-border cursor-pointer min-w-[110px] max-w-[180px] transition-all relative select-none",
               tab.active
                 ? "bg-background text-foreground"
-                : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-accent/50"
+                : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-accent/50",
             )}
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.active && (
               <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary" />
             )}
-            <span className="text-[12px] font-medium truncate">{tab.title}</span>
+            <span className="text-[12px] font-medium truncate">
+              {tab.title}
+            </span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -51,7 +53,7 @@ export function CommandHeader() {
               }}
               className={cn(
                 "ml-auto p-0.5 rounded hover:bg-accent transition-colors opacity-0 group-hover:opacity-100 shrink-0",
-                tab.active && "opacity-40 hover:opacity-100"
+                tab.active && "opacity-40 hover:opacity-100",
               )}
             >
               <X className="w-3 h-3" />
@@ -65,6 +67,9 @@ export function CommandHeader() {
 
       {/* Right: User */}
       <div className="flex items-center gap-3 px-4 border-l border-border h-full shrink-0">
+        <div className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-accent/50 rounded border border-border/50 text-[10px] text-muted-foreground/50 font-mono select-none">
+          <span className="text-[12px]">⌘</span> K
+        </div>
         {user?.handle && (
           <span className="text-xs text-muted-foreground/50 font-medium hidden sm:block">
             {user.handle}

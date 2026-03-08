@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { snippets, profiles, assets, portfolioWorks, logs, projects, projectMembers } from "@/db/schema";
-import { desc, count, eq, sql } from "drizzle-orm";
+import { snippets, profiles, assets, portfolioWorks, logs, projects, projectMembers, learnerProfile } from "@/db/schema";
+import { desc, count, eq, inArray } from "drizzle-orm";
 import { auth } from "@/auth";
 
 export async function GET() {
@@ -17,22 +17,45 @@ export async function GET() {
       });
     }
 
-    // Recent projects for the archive dashboard
-    const allProjects = await db.query.projects.findMany({
-      with: {
-        members: {
+    // Fetch learner profile for user metrics
+    let learnerData = null;
+    if (userProfile) {
+      learnerData = await db.query.learnerProfile.findFirst({
+        where: eq(learnerProfile.profileId, userProfile.id)
+      });
+    }
+
+    // Recent projects for the archive dashboard - SCOPED TO USER
+    // Fix: use inArray instead of raw SQL EXISTS (avoids column alias bug)
+    let allProjects: any[] = [];
+    if (userProfile) {
+      const memberRows = await db
+        .select({ projectId: projectMembers.projectId })
+        .from(projectMembers)
+        .where(eq(projectMembers.profileId, userProfile.id));
+
+      const projectIds = memberRows.map((r) => r.projectId);
+
+      if (projectIds.length > 0) {
+        allProjects = await db.query.projects.findMany({
+          where: inArray(projects.id, projectIds),
           with: {
-            profile: true,
-          }
-        }
-      },
-      orderBy: [desc(projects.createdAt)],
-    });
+            members: {
+              with: {
+                profile: true,
+              }
+            }
+          },
+          orderBy: [desc(projects.createdAt)],
+        });
+      }
+    }
+
 
     // Formatting projects to include members simplified
     const formattedProjects = allProjects.map(p => ({
       ...p,
-      members: p.members.map(m => ({
+      members: p.members.map((m: any) => ({
         id: m.profile.id,
         name: m.profile.name,
         handle: m.profile.handle,
@@ -181,6 +204,25 @@ export async function GET() {
       userWorks,
       recentLogs,
       snippetActivity,
+      learnerMetrics: learnerData ? {
+        // Core level
+        skillLevel: learnerData.skillLevel,
+        skillScore: Math.round((learnerData.skillScore || 0) * 100),
+        // Learning style & preferences
+        learningStyle: learnerData.learningStyle,
+        preferredDepth: learnerData.preferredDepth,
+        // Progress metrics
+        conceptsLearned: learnerData.totalKeywordsLearned || 0,
+        masteryScore: Math.round((learnerData.conceptMasteryScore || 0) * 100),
+        recallAccuracy: Math.round((learnerData.challengeAccuracy || 0) * 100),
+        confidenceScore: Math.round((learnerData.confidenceScore || 0) * 100),
+        // Activity signals
+        recentActivityScore: Math.round((learnerData.recentActivityScore || 0) * 100),
+        avgTimeOnExplanation: learnerData.avgTimeOnExplanation || 0,
+        lastSignalAt: learnerData.lastSignalAt,
+        inferredFromOnboarding: learnerData.inferredFromOnboarding,
+        lastUpdated: learnerData.lastUpdated,
+      } : null,
     });
   } catch (error) {
     console.error("Dashboard API error:", error);

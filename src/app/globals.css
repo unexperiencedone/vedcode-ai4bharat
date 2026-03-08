@@ -97,13 +97,13 @@
 
 .dark {
   /* Midnight Slate Base */
-  --background: #0b0e11; /* Deep Charcoal */
+  --background: #0a0a0a; /* Neutral 950 Deep Black */
   --foreground: #e4e4de; /* Bone White */
 
   /* UI Elements */
-  --card: #162032;
+  --card: #141414;
   --card-foreground: #e4e4de;
-  --popover: #162032;
+  --popover: #141414;
   --popover-foreground: #e4e4de;
   --primary: #3b82f6; /* Electric Cobalt */
   --primary-foreground: #ffffff;
@@ -127,7 +127,7 @@
   --chart-5: #94a3b8;
 
   /* Sidebar */
-  --sidebar: #0b0e11;
+  --sidebar: #0a0a0a;
   --sidebar-foreground: #e4e4de;
   --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #ffffff;
@@ -136,6 +136,7 @@
   --sidebar-border: #1e293b;
   --sidebar-ring: #3b82f6;
 }
+
 
 @layer base {
   * {

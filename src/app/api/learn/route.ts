@@ -43,12 +43,18 @@ export async function POST(req: Request) {
 
             if (adaptive) {
                 return NextResponse.json({
-                    explanation: adaptive,
+                    explanation: {
+                        theory: adaptive.explanation,
+                        snippet: adaptive.mentalModel || "// Conceptual model here",
+                        projectApplication: adaptive.oneLiner || "Project application logic."
+                    },
                     gaps: gaps,
                     mastery: {
                         understanding: progress?.understandingScore || 0,
                         recall: progress?.recallScore || 0,
-                        level: progress?.masteryLevel || 'learning'
+                        level: progress?.masteryLevel || 'learning',
+                        groundingScore: 100,
+                        isProjectSynced: true
                     },
                     source: 'knowledge_base'
                 });
@@ -61,36 +67,85 @@ export async function POST(req: Request) {
         const groundingContext = grounding.formatContextToPrompt(context);
 
         const prompt = `
-            You are an elite developer mentor for Ved Code. 
+            You are an elite developer mentor for VedCode. 
             The user is asking about: "${keyword}".
             
             ${groundingContext}
             
             TASK:
-            1. Provide a brilliantly clear, concise explanation structured in Markdown.
+            1. Provide a brilliantly clear, concise explanation.
             2. If knowledge grounding is provided above, reference EXACT symbols and files from the user's project to illustrate your point.
-            3. Address any architectural stress (fragility) mentioned in the grounding.
             
-            ### Contextual Snippet
-            (Use a snippet from the grounding if available, otherwise a generic realistic one).
-            
-            ### Theory
-            2 paragraphs explaining the core concept.
-            
-            ### Project Application
-            1 paragraph on how this specific project implements or should implement this concept.
+            Return your response in EXACTLY this JSON format:
+            {
+              "theory": "markdown string (2 paragraphs)",
+              "snippet": "string with EXACT raw code only (no markdown backticks, no text before/after code).",
+              "language": "the programming language of the snippet (e.g. 'cpp', 'typescript', 'python')",
+              "projectApplication": "markdown string on how THIS project uses or should use it (1 paragraph)"
+            }
         `;
 
         const { text } = await generateText({
             model: bedrock("mistral.mistral-large-2402-v1:0"),
-            prompt: prompt
+            prompt: prompt,
         });
 
+        let structuredData;
+        try {
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            structuredData = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+        } catch (e) {
+            structuredData = {
+                theory: text,
+                snippet: "",
+                language: "typescript",
+                projectApplication: "See the explanation above for context on how this concept applies."
+            };
+        }
+
+        // Create or update progress for this concept exploration (ONLY if card exists)
+        let progress;
+        if (profileId && card) {
+            progress = await db.query.userConceptProgress.findFirst({
+                where: and(
+                    eq(userConceptProgress.profileId, profileId),
+                    eq(userConceptProgress.conceptId, card.id)
+                )
+            });
+
+            if (!progress) {
+                await db.insert(userConceptProgress).values({
+                    profileId,
+                    conceptId: card.id,
+                    understandingScore: 0.1,
+                    recallScore: 0,
+                    masteryLevel: 'learning',
+                    lastReviewed: new Date(),
+                });
+
+                progress = {
+                    understandingScore: 0.1,
+                    recallScore: 0,
+                    masteryLevel: 'learning'
+                };
+            } else {
+                await db.update(userConceptProgress)
+                    .set({ lastReviewed: new Date() })
+                    .where(and(
+                        eq(userConceptProgress.profileId, profileId),
+                        eq(userConceptProgress.conceptId, card.id)
+                    ));
+            }
+        }
+
         return NextResponse.json({
-            explanation: {
-                name: keyword,
-                explanation: text,
-                difficulty: 'unknown'
+            explanation: structuredData,
+            mastery: {
+                understanding: progress?.understandingScore || 0,
+                recall: progress?.recallScore || 0,
+                level: progress?.masteryLevel || (card ? 'learning' : 'unexplored'),
+                groundingScore: context.usages.length > 0 ? 100 : 0,
+                isProjectSynced: context.usages.length > 0
             },
             source: context.concept ? 'grounded_llm' : 'llm_fallback'
         });
@@ -100,4 +155,3 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
-

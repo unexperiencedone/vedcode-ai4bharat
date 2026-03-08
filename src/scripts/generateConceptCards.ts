@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { embedText } from '../lib/vedacode/embeddings';
+import { embedText } from '../lib/vedcode/embeddings';
 import { db } from '../lib/db';
 import { conceptCards, conceptExamples, conceptQuizzes, conceptRelationships, technologies } from '../db/schema';
 import { technologySeeds } from './conceptSeeds';

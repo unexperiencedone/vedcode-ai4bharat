@@ -4,7 +4,7 @@ import { relations } from "drizzle-orm";
 // Create custom vector type in case standard vector import has version issues
 const vector = customType<{ data: number[] }>({
   dataType() {
-    return 'vector(1536)';
+    return 'vector(512)';
   },
 });
 
@@ -189,7 +189,7 @@ export const projectMembersRelations = relations(projectMembers, ({ one }) => ({
   }),
 }));
 
-// VedaCode MVP Tables
+// VedCode MVP Tables
 
 export const memoryLogs = pgTable("memory_log", {
   id: serial("id").primaryKey(),
@@ -197,14 +197,20 @@ export const memoryLogs = pgTable("memory_log", {
   keyword: text("keyword").notNull(),
   context: jsonb("context"), // e.g. snippet of where it was used
   timestamp: timestamp("timestamp").defaultNow().notNull(),
-  strengthScore: integer("strength_score").default(100), // VedaCode's forgetting decay
+  strengthScore: integer("strength_score").default(100), // VedCode's forgetting decay
 });
 
 export const projectFiles = pgTable("project_files", {
   id: serial("file_id").primaryKey(),
   userId: uuid("user_id").references(() => profiles.id).notNull(),
-  filePath: text("file_path").notNull(),
-  fileContent: text("file_content").notNull(),
+  projectId: uuid("project_id").references(() => projects.id), // Added to link files to a codebase
+  name: text("name").notNull().default("Untitled"), // e.g. "src", "index.ts"
+  isFolder: boolean("is_folder").default(false),
+  parentId: integer("parent_id").references((): any => projectFiles.id, { onDelete: 'cascade' }), // null if root level
+  filePath: text("file_path").notNull(), // Full path e.g. "/src/index.ts"
+  fileContent: text("file_content").notNull().default(""),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // --- KNOWLEDGE BASE LAYER ---
@@ -232,6 +238,9 @@ export const conceptCards = pgTable("concept_cards", {
   beginnerExplanation: text("beginner_explanation").notNull(),
   intermediateExplanation: text("intermediate_explanation").notNull(),
   advancedExplanation: text("advanced_explanation").notNull(),
+
+  section: text("section"), // e.g., 'Getting Started', 'Hooks'
+  orderIndex: integer("order_index").default(0),
 
   embedding: vector("embedding"), // pgvector
 
@@ -261,17 +270,7 @@ export const conceptRelationships = pgTable("concept_relationships", {
   relationType: text("relation_type").notNull(), // depends_on, related_to, alternative_to, part_of, commonly_confused_with
 });
 
-export const conceptQuizzes = pgTable("concept_quizzes", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  conceptId: uuid("concept_id").references(() => conceptCards.id).notNull(),
-  question: text("question").notNull(),
-  optionA: text("option_a").notNull(),
-  optionB: text("option_b").notNull(),
-  optionC: text("option_c").notNull(),
-  optionD: text("option_d").notNull(),
-  correctOption: text("correct_option").notNull(), // 'A', 'B', 'C', or 'D'
-  difficulty: text("difficulty").notNull(), // beginner, intermediate, advanced
-});
+
 
 export const learningRoadmaps = pgTable("learning_roadmaps", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -280,6 +279,17 @@ export const learningRoadmaps = pgTable("learning_roadmaps", {
   orderIndex: integer("order_index").notNull(),
   conceptId: uuid("concept_id").references(() => conceptCards.id).notNull(),
 });
+
+export const learningRoadmapsRelations = relations(learningRoadmaps, ({ one }) => ({
+  technology: one(technologies, {
+    fields: [learningRoadmaps.technologyId],
+    references: [technologies.id],
+  }),
+  concept: one(conceptCards, {
+    fields: [learningRoadmaps.conceptId],
+    references: [conceptCards.id],
+  }),
+}));
 
 // --- LEARNER PROFILE LAYER ---
 
@@ -321,12 +331,32 @@ export const userConceptProgress = pgTable("user_concept_progress", {
   id: uuid("id").primaryKey().defaultRandom(),
   profileId: uuid("profile_id").references(() => profiles.id).notNull(),
   conceptId: uuid("concept_id").references(() => conceptCards.id).notNull(),
-  understandingScore: real("understanding_score").default(0.0), // 0 to 1
-  recallScore: real("recall_score").default(0.0),               // 0 to 1
-  masteryLevel: text("mastery_level").default('learning'), // learning, familiar, mastered
-  lastReviewed: timestamp("last_reviewed").defaultNow(),
-  lastRecallAt: timestamp("last_recall_at"),
+  
+  // Ebbinghaus / Mastery Metrics
+  understandingScore: real("understanding_score").default(0), // 0 to 1
+  recallScore: real("recall_score").default(0), // 0 to 1
+  masteryLevel: text("mastery_level").default("learning"), // learning, familiar, competent, mastered
+  
+  // Tracking
+  lastReviewed: timestamp("last_reviewed"),
+  nextReviewAt: timestamp("next_review_at"), // Target time for next micro-challenge
+  repetitions: integer("repetitions").default(0),
+  
+  // Context
+  firstEncounteredAt: timestamp("first_encountered_at").defaultNow(),
+  associatedProjectScope: text("associated_project_scope"), 
 });
+
+export const userConceptProgressRelations = relations(userConceptProgress, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [userConceptProgress.profileId],
+    references: [profiles.id],
+  }),
+  concept: one(conceptCards, {
+    fields: [userConceptProgress.conceptId],
+    references: [conceptCards.id],
+  }),
+}));
 
 // --- CODEBASE GRAPH LAYER (Phase 5) ---
 
@@ -381,7 +411,6 @@ export const conceptCardsRelations = relations(conceptCards, ({ one, many }) => 
     references: [technologies.id],
   }),
   examples: many(conceptExamples),
-  quizzes: many(conceptQuizzes),
 }));
 
 export const conceptExamplesRelations = relations(conceptExamples, ({ one }) => ({
@@ -554,5 +583,103 @@ export const conceptChangeLogRelations = relations(conceptChangeLog, ({ one }) =
   concept: one(conceptCards, {
     fields: [conceptChangeLog.conceptId],
     references: [conceptCards.id],
+  }),
+}));
+// ==========================================
+// PHASE 16: PERSISTENT ROADMAP LEARNING SYSTEM
+// ==========================================
+
+// Type helpers for the JSON columns
+export type RoadmapStep = {
+  slug: string;
+  name: string;
+  reasoning: string;
+  orderIndex: number;
+};
+
+/**
+ * Each row = one self-contained learning chapter for a user.
+ * A user can have: ML roadmap, Python roadmap, React roadmap — all isolated.
+ * Concepts and mastery inside each roadmap never mix between chapters.
+ */
+export const userRoadmaps = pgTable("user_roadmaps", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  profileId: uuid("profile_id").references(() => profiles.id).notNull(),
+  // Human-readable chapter title ("Python for Data Science", "Machine Learning Fundamentals")
+  title: text("title").notNull(),
+  // What the user asked for ("I want to build ML pipelines")
+  goal: text("goal").notNull(),
+  // Technology tag — scopes this chapter ("python", "machine-learning", "react")
+  techSlug: text("tech_slug").notNull(),
+  // Ordered concept steps: [{ slug, name, reasoning, orderIndex }]
+  steps: jsonb("steps").notNull().$type<RoadmapStep[]>(),
+  // "active" | "completed"
+  status: text("status").notNull().default("active"),
+  // Index of the concept the user is currently on
+  currentStepIndex: integer("current_step_index").notNull().default(0),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/**
+ * Caches AI-generated MCQ quiz questions per concept.
+ * Keyed by techSlug+conceptSlug so the same concept slug in different
+ * technologies can have different questions.
+ */
+export const conceptQuizzes = pgTable("concept_quizzes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  // e.g. "python::variables" or "machine-learning::gradient-descent"
+  cacheKey: text("cache_key").notNull().unique(),
+  conceptSlug: text("concept_slug").notNull(),
+  question: text("question").notNull(),
+  options: jsonb("options").notNull().$type<string[]>(),
+  correctIndex: integer("correct_index").notNull(),
+  explanation: text("explanation").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userRoadmapsRelations = relations(userRoadmaps, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [userRoadmaps.profileId],
+    references: [profiles.id],
+  }),
+}));
+
+
+export const chatSessions = pgTable("chat_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  profileId: uuid("profile_id").references(() => profiles.id).notNull(),
+  title: text("title"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sessionId: uuid("session_id").references(() => chatSessions.id),
+  profileId: uuid("profile_id").references(() => profiles.id), // For global context search
+  role: text("role").notNull(), // 'user' | 'tutor'
+  content: text("content").notNull(),
+  embedding: vector("embedding"), // vector(1536)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const chatSessionsRelations = relations(chatSessions, ({ one, many }) => ({
+  profile: one(profiles, {
+    fields: [chatSessions.profileId],
+    references: [profiles.id],
+  }),
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  session: one(chatSessions, {
+    fields: [chatMessages.sessionId],
+    references: [chatSessions.id],
+  }),
+  profile: one(profiles, {
+    fields: [chatMessages.profileId],
+    references: [profiles.id],
   }),
 }));
