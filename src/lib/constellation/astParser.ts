@@ -68,15 +68,18 @@ function classifyNode(filePath: string): ConstellationNodeData['nodeType'] {
     const p = filePath.toLowerCase();
     if (
         p.includes('/components/') || p.includes('/views/') || p.includes('/widgets/') ||
+        p.includes('/ui/') ||
         p.endsWith('page.tsx') || p.endsWith('layout.tsx') || p.endsWith('.vue') || p.endsWith('.svelte')
     ) return 'component';
     if (
         p.includes('/api/') || p.includes('/routes/') || p.includes('/controllers/') ||
+        p.includes('/handlers/') ||
         p.endsWith('route.ts') || p.endsWith('route.js') || p.endsWith('_pb.go')
     ) return 'api';
     if (
         p.includes('/lib/') || p.includes('/libs/') || p.includes('/utils/') ||
-        p.includes('/helpers/') || p.includes('/services/') || p.includes('/pkg/')
+        p.includes('/helpers/') || p.includes('/services/') || p.includes('/pkg/') ||
+        p.includes('/internal/')
     ) return 'lib';
     if (
         p.includes('schema') || p.includes('/db/') || p.includes('/models/') ||
@@ -208,8 +211,14 @@ function analyzeFileRegex(
         }
     }
 
-    // Only keep relative/absolute imports that could map to local files
-    const localImports = rawImports.filter(i => i.startsWith('.') || i.startsWith('/'));
+    // Keep everything, not just "./relative" imports — most non-JS languages write
+    // intra-repo imports as absolute dotted/namespaced paths (Python "app.core.config",
+    // Java/C#/Kotlin/Scala fully-qualified names, Rust/C++ "::" paths), which don't
+    // start with "." or "/" and were being silently dropped here, leaving files that
+    // import entirely via that style with zero resolved edges. Genuine third-party
+    // packages (numpy, fastapi, std::...) are filtered out downstream instead — they
+    // simply never match a real file path, so nothing extra needs filtering here.
+    const localImports = rawImports;
 
     return {
         id: filePath,
@@ -226,11 +235,101 @@ function analyzeFileRegex(
 }
 
 // ── Import resolution ─────────────────────────────────────────────────────────
+//
+// Relative imports ("./foo") resolve against the importing file's directory.
+// Everything else is either an npm package (ignore) or a tsconfig/jsconfig path
+// alias ("@/foo" → "src/foo") — extremely common in modern TS repos (this very
+// codebase uses "@/*" for basically every internal import). Without alias support,
+// nearly all real edges in an aliased repo were silently dropped, leaving only the
+// sparse handful of literal relative imports — a graph that looks arbitrary because
+// most of the actual dependency structure was never represented.
 
-function resolveRelativeImport(fromPath: string, importStr: string): string | null {
-    if (!importStr.startsWith('.') && !importStr.startsWith('/')) return null;
-    const dir = path.posix.dirname(fromPath);
-    return path.posix.join(dir, importStr).replace(/^\//, '');
+interface AliasConfig {
+    baseUrl: string;                 // posix, relative to repo root ('' = root)
+    paths: Record<string, string[]>; // e.g. { "@/*": ["./src/*"] }
+}
+
+function stripJsonComments(text: string): string {
+    // tsconfig.json is conventionally JSONC. Best-effort strip so JSON.parse doesn't
+    // choke on comments/trailing commas — not a full JSONC parser; any remaining
+    // parse failure just falls back to "no aliases" rather than failing analysis.
+    return text
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|[^:])\/\/.*$/gm, '$1')
+        .replace(/,(\s*[}\]])/g, '$1');
+}
+
+function findConfigFile(files: Map<string, string>): string | undefined {
+    return [...files.keys()]
+        .filter((k) => /(^|\/)(tsconfig|jsconfig)\.json$/.test(k))
+        .sort((a, b) => a.split('/').length - b.split('/').length)[0];
+}
+
+function parseAliasConfig(files: Map<string, string>): AliasConfig | null {
+    const configPath = findConfigFile(files);
+    if (!configPath) return null;
+    try {
+        const json = JSON.parse(stripJsonComments(files.get(configPath)!));
+        const co = json.compilerOptions ?? {};
+        const paths = co.paths as Record<string, string[]> | undefined;
+        if (!paths || Object.keys(paths).length === 0) return null;
+
+        const configDir = path.posix.dirname(configPath); // '.' for a root-level config
+        const baseUrl = path.posix.normalize(
+            path.posix.join(configDir === '.' ? '' : configDir, co.baseUrl ?? '.')
+        );
+        return { baseUrl: baseUrl === '.' ? '' : baseUrl, paths };
+    } catch {
+        return null;
+    }
+}
+
+/** Resolves one non-relative import against tsconfig `paths`, e.g. "@/lib/foo" → "src/lib/foo". */
+function resolveAlias(importStr: string, cfg: AliasConfig): string | null {
+    for (const [pattern, targets] of Object.entries(cfg.paths)) {
+        const target = targets[0];
+        if (!target) continue;
+
+        const starIdx = pattern.indexOf('*');
+        if (starIdx === -1) {
+            if (importStr !== pattern) continue;
+            return path.posix.join(cfg.baseUrl, target);
+        }
+
+        const prefix = pattern.slice(0, starIdx);
+        const suffix = pattern.slice(starIdx + 1);
+        if (!importStr.startsWith(prefix) || !importStr.endsWith(suffix)) continue;
+        if (importStr.length < prefix.length + suffix.length) continue;
+
+        const wildcard = importStr.slice(prefix.length, importStr.length - suffix.length);
+        return path.posix.join(cfg.baseUrl, target.replace('*', wildcard)).replace(/^\.\//, '');
+    }
+    return null;
+}
+
+function resolveImportPath(fromPath: string, importStr: string, aliasCfg: AliasConfig | null): string | null {
+    if (importStr.startsWith('.') || importStr.startsWith('/')) {
+        const dir = path.posix.dirname(fromPath);
+        return path.posix.join(dir, importStr).replace(/^\//, '');
+    }
+    return aliasCfg ? resolveAlias(importStr, aliasCfg) : null;
+}
+
+/**
+ * Converts a namespaced import string to a path-shaped candidate: Python
+ * "app.core.config" → "app/core/config", Rust/C++ "std::collections::HashMap" →
+ * "std/collections/HashMap". Left as-is if already path-shaped (Go "myrepo/pkg/foo")
+ * or a bare specifier with no separator. This candidate is *package-root-relative*,
+ * not repo-root-relative — the repo root usually sits a few directories above wherever
+ * the package actually starts (e.g. "backend/app/core/config.py" for import
+ * "app.core.config") — so it's matched by path suffix in the edge-building pass below,
+ * not by exact match.
+ */
+function toNamespaceCandidate(importStr: string): string {
+    if (importStr.includes('/')) return importStr;
+    if (importStr.includes('::')) return importStr.replace(/::/g, '/');
+    if (importStr.includes('.')) return importStr.replace(/\./g, '/');
+    return importStr;
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -239,10 +338,14 @@ export function analyzeRepo(files: Map<string, string>): {
     nodes: ConstellationNodeData[];
     edgePairs: { from: string; to: string }[];
 } {
+    const aliasCfg = parseAliasConfig(files);
+    const configFile = findConfigFile(files);
+
     const tsJsFiles = new Map<string, string>();
     const otherFiles = new Map<string, string>();
 
     for (const [fp, content] of files) {
+        if (fp === configFile) continue; // tsconfig/jsconfig.json is metadata, not a source node
         (JS_TS_EXTS.has(path.extname(fp).toLowerCase()) ? tsJsFiles : otherFiles).set(fp, content);
     }
 
@@ -262,9 +365,15 @@ export function analyzeRepo(files: Map<string, string>): {
             catch { /* skip unparseable */ }
         }
 
-        for (const sf of project.getSourceFiles()) {
-            const raw = sf.getFilePath();
-            const filePath = raw.startsWith('/') ? raw.slice(1) : raw;
+        // Iterate our own tsJsFiles keys rather than project.getSourceFiles() + sf.getFilePath():
+        // ts-morph's internal virtual FS standardizes/round-trips the path it hands back, which
+        // can disagree with the exact string we fetched the file under (e.g. paths containing
+        // spaces). Using our own key as the canonical filePath keeps it byte-identical to the
+        // fileContentCache key the /api/explore/file route looks up later — otherwise the graph
+        // node, sidebar, and click handler all carry a path that 404s against that cache.
+        for (const filePath of tsJsFiles.keys()) {
+            const sf = project.getSourceFile(filePath);
+            if (!sf) continue; // failed to parse — skipped during createSourceFile above
 
             const ifCount = sf.getDescendantsOfKind(SyntaxKind.IfStatement).length;
             const ternCount = sf.getDescendantsOfKind(SyntaxKind.ConditionalExpression).length;
@@ -275,7 +384,7 @@ export function analyzeRepo(files: Map<string, string>): {
 
             const importDecls = sf.getImportDeclarations();
             const resolvedImports = importDecls
-                .map(d => resolveRelativeImport(filePath, d.getModuleSpecifierValue()))
+                .map(d => resolveImportPath(filePath, d.getModuleSpecifierValue(), aliasCfg))
                 .filter((r): r is string => r !== null);
 
             nodeMap.set(filePath, {
@@ -298,7 +407,9 @@ export function analyzeRepo(files: Map<string, string>): {
         const language = getLanguage(fp);
         const analysis = analyzeFileRegex(fp, content, language);
         const resolvedImports = analysis.imports
-            .map(i => resolveRelativeImport(fp, i))
+            .map(i => (i.startsWith('.') || i.startsWith('/'))
+                ? resolveImportPath(fp, i, aliasCfg)
+                : toNamespaceCandidate(i))
             .filter((r): r is string => r !== null);
 
         nodeMap.set(fp, { ...analysis, imports: resolvedImports, luminosity: 0, gravity: 0 });
@@ -307,6 +418,20 @@ export function analyzeRepo(files: Map<string, string>): {
     // ── C. Second pass: inbound gravity + edge pairs ──────────────────────────
     const inbound = new Map<string, number>();
     const edgePairs: { from: string; to: string }[] = [];
+
+    // Exact match first (repo-root-relative candidates — JS/TS relative imports,
+    // resolved aliases); falls back to matching by path *suffix* for package-root-
+    // relative candidates (namespaced imports like Python's "app.core.config" →
+    // "app/core/config", which is relative to wherever the package root sits, not
+    // necessarily the repo root — e.g. it needs to match "backend/app/core/config.py").
+    function findNodeMatch(candidates: string[]): string | undefined {
+        for (const c of candidates) if (nodeMap.has(c)) return c;
+        for (const c of candidates) {
+            const suffix = '/' + c;
+            for (const key of nodeMap.keys()) if (key.endsWith(suffix)) return key;
+        }
+        return undefined;
+    }
 
     for (const [, node] of nodeMap) {
         for (const imp of node.imports) {
@@ -317,12 +442,10 @@ export function analyzeRepo(files: Map<string, string>): {
                 imp.replace(/\.ts$/, '.tsx'), imp.replace(/\.tsx$/, '.ts'),
                 imp + '/index.ts', imp + '/index.js', imp + '/__init__.py',
             ];
-            for (const c of candidates) {
-                if (nodeMap.has(c)) {
-                    inbound.set(c, (inbound.get(c) ?? 0) + 1);
-                    edgePairs.push({ from: node.filePath, to: c });
-                    break;
-                }
+            const match = findNodeMatch(candidates);
+            if (match) {
+                inbound.set(match, (inbound.get(match) ?? 0) + 1);
+                edgePairs.push({ from: node.filePath, to: match });
             }
         }
     }

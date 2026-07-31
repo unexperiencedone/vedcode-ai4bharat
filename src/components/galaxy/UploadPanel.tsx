@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { GitBranch, Loader2, Telescope, X, ChevronRight } from 'lucide-react';
 import type { Node, Edge } from '@xyflow/react';
 import type { ConstellationStats } from '@/lib/constellation/cache';
@@ -22,6 +22,14 @@ const PROGRESS_MESSAGES = [
 
 export function UploadPanel({ onGraphReady, defaultUrl }: UploadPanelProps) {
     const [repoUrl, setRepoUrl] = useState(defaultUrl || '');
+
+    // defaultUrl comes from a localStorage-backed cache one level up; on the very
+    // first client render it can still be the SSR default ('') when this component
+    // mounts. Sync once it arrives, but only while the field is untouched by the user.
+    useEffect(() => {
+        if (defaultUrl && !repoUrl) setRepoUrl(defaultUrl);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [defaultUrl]);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');

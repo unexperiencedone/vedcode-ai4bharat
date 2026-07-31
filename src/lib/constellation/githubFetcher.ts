@@ -78,11 +78,19 @@ export async function parseGithubUrl(
     return { owner, repo, branch };
 }
 
+export interface FetchedRepoFiles {
+    files: Map<string, string>;
+    /** True when the repo had more eligible code files than MAX_FILES allows. */
+    truncated: boolean;
+    /** Count of eligible code files before the MAX_FILES cap was applied. */
+    eligibleCount: number;
+}
+
 export async function fetchRepoFiles(
     owner: string,
     repo: string,
     branch: string
-): Promise<Map<string, string>> {
+): Promise<FetchedRepoFiles> {
     // 1. Fetch recursive file tree (single API call)
     const treeRes = await fetch(
         `${GITHUB_API}/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
@@ -95,21 +103,46 @@ export async function fetchRepoFiles(
 
     type TreeItem = { path: string; type: string; sha: string; size?: number };
     // 2. Filter to only code files, respect ignore list and size cap
-    const blobs: TreeItem[] = (treeData.tree as TreeItem[])
+    const eligible: TreeItem[] = (treeData.tree as TreeItem[])
         .filter(
             (item) =>
                 item.type === 'blob' &&
                 CODE_EXTENSIONS.some((ext) => item.path.endsWith(ext)) &&
                 !IGNORED_PATHS.some((ignored) => item.path.split('/').includes(ignored)) &&
                 (item.size ?? 0) < MAX_FILE_SIZE
-        )
-        .slice(0, MAX_FILES);
+        );
+    const blobs = eligible.slice(0, MAX_FILES);
+    const truncated = eligible.length > MAX_FILES;
 
-    if (blobs.length === 0) return new Map();
+    // 2.5 Also grab the root-level tsconfig.json/jsconfig.json (if any) — not a source
+    // file, but astParser needs its `paths` aliases to resolve non-relative imports
+    // like "@/lib/foo". Kept outside `eligible`/MAX_FILES: it's metadata, not a node.
+    const configCandidates = (treeData.tree as TreeItem[])
+        .filter(
+            (item) =>
+                item.type === 'blob' &&
+                /(^|\/)(tsconfig|jsconfig)\.json$/.test(item.path) &&
+                (item.size ?? 0) < MAX_FILE_SIZE
+        )
+        .sort((a, b) => a.path.split('/').length - b.path.split('/').length);
+    const configBlob = configCandidates[0];
+
+    if (blobs.length === 0 && !configBlob) return { files: new Map(), truncated, eligibleCount: eligible.length };
 
     // 3. Batch-fetch blob content (20 at a time)
     const files = new Map<string, string>();
     const BATCH = 20;
+
+    if (configBlob) {
+        const res = await fetch(
+            `${GITHUB_API}/repos/${owner}/${repo}/git/blobs/${configBlob.sha}`,
+            { headers: headers() }
+        );
+        if (res.ok) {
+            const data = await res.json();
+            files.set(configBlob.path, Buffer.from(data.content as string, 'base64').toString('utf-8'));
+        }
+    }
 
     for (let i = 0; i < blobs.length; i += BATCH) {
         const batch = blobs.slice(i, i + BATCH);
@@ -127,5 +160,5 @@ export async function fetchRepoFiles(
         );
     }
 
-    return files;
+    return { files, truncated, eligibleCount: eligible.length };
 }

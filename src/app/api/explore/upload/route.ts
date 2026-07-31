@@ -19,8 +19,10 @@ export async function POST(req: NextRequest) {
         const { owner, repo, branch } = await parseGithubUrl(repoUrl);
 
         // 2. Fetch all code files via GitHub API
-        const files = await fetchRepoFiles(owner, repo, branch);
-        if (files.size === 0) {
+        const { files, truncated, eligibleCount } = await fetchRepoFiles(owner, repo, branch);
+        // eligibleCount, not files.size — files may hold only a tsconfig.json fetched
+        // purely for alias resolution, with zero actual source files behind it.
+        if (eligibleCount === 0) {
             return NextResponse.json(
                 { error: 'No TypeScript/JavaScript files found in this repository.' },
                 { status: 400 }
@@ -129,13 +131,21 @@ export async function POST(req: NextRequest) {
                 : 'n/a',
             repo: `${owner}/${repo}`,
             branch,
+            truncated,
+            eligibleCount,
         };
 
         const data = { nodes, edges, stats };
 
         // 6. Cache with session cookie
-        const sessionId =
-            req.cookies.get('constellation-session')?.value ?? crypto.randomUUID();
+        //
+        // Always mint a fresh id instead of reusing whatever "constellation-session"
+        // cookie is already set. Cookies are shared across every tab on this domain —
+        // reusing it meant analyzing a second repo in another tab silently overwrote
+        // this session's cached files out from under a still-open first tab, which then
+        // 404s ("File not found") on files that really are part of the repo it's showing,
+        // because the cache slot now holds a completely different repo's files.
+        const sessionId = crypto.randomUUID();
         constellationCache.set(sessionId, data);
         fileContentCache.set(sessionId, files); // for the explain API
 

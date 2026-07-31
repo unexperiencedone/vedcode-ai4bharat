@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import type { Node, Edge } from '@xyflow/react';
-import { GraphCanvas } from '@/components/galaxy/GraphCanvas';
+import ConstellationGraph from '@/components/galaxy/ConstellationGraph';
 import { UploadPanel } from '@/components/galaxy/UploadPanel';
 import { FileExplainSheet } from '@/components/galaxy/FileExplainSheet';
 import { FileTreeSidebar } from '@/components/galaxy/FileTreeSidebar';
@@ -62,7 +62,7 @@ export default function ExplorePage() {
         const user = session.user as any;
         try {
             const metrics = await getFileMetrics(filePath, user.id);
-            
+
             if (metrics.stressScore >= 0.6 || metrics.learningGaps.length > 0) {
                 setPreFlightFile({ filePath, language, metrics });
             } else {
@@ -78,10 +78,13 @@ export default function ExplorePage() {
         setGraphData(null);
         setSelectedFile(null);
         clearGraphCache();
+        // Free the server-side session cache (constellationCache / fileContentCache) —
+        // otherwise every "New Repo" click leaks an entry for the life of the server.
+        fetch('/api/explore/upload', { method: 'DELETE' }).catch(() => {});
     };
 
     return (
-        <div className="flex flex-col h-full w-full p-8 animate-in fade-in duration-500">
+        <div className="flex flex-col h-full w-full p-8 overflow-hidden animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex items-center justify-between mb-6 shrink-0">
                 <div>
@@ -90,10 +93,10 @@ export default function ExplorePage() {
                     </h1>
                     <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
                         {graphData
-                            ? `Visualizing ${graphData.stats.repo} · branch: ${graphData.stats.branch} · click any star to explore`
+                            ? `Visualizing ${graphData.stats.repo} · branch: ${graphData.stats.branch} · click any node to inspect`
                             : graphCache
                                 ? `Last session: ${graphCache.stats?.repo || graphCache.repoUrl} · Paste a new URL or continue exploring`
-                                : 'Paste a GitHub URL to generate a live AST-powered codebase map.'}
+                                : 'Paste a GitHub URL to generate a live AST-powered dependency map.'}
                     </p>
                     {graphCache && !graphData && (
                         <div className="flex items-center gap-1.5 mt-1.5 text-xs text-yellow-500/80">
@@ -101,47 +104,49 @@ export default function ExplorePage() {
                             <span>Graph data from last session — paste the URL again to reload.</span>
                         </div>
                     )}
+                    {graphData?.stats.truncated && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-yellow-500/80">
+                            <Clock size={12} />
+                            <span>
+                                Showing {graphData.stats.fileCount} of {graphData.stats.eligibleCount} eligible files — repo exceeds the analysis cap, so this map is partial.
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {graphData && (
-                    <div className="flex items-center gap-3">
-                        <div className="border border-border/50 bg-card rounded-lg p-1.5 flex text-xs">
-                            <button className="px-3 py-1.5 bg-primary/20 text-primary rounded-md font-medium">
-                                Radial-Force
-                            </button>
-                            <button className="px-3 py-1.5 text-muted-foreground hover:text-foreground">
-                                Hierarchical
-                            </button>
-                        </div>
-                        <button
-                            onClick={handleClear}
-                            className="flex items-center gap-2 px-4 py-2 border border-border/50 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-                        >
-                            <RefreshCw className="w-3.5 h-3.5" />
-                            New Repo
-                        </button>
-                    </div>
+                    <button
+                        onClick={handleClear}
+                        className="flex items-center gap-2 px-4 py-2 border border-border/50 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                    >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        New Repo
+                    </button>
                 )}
             </div>
 
-            {/* Content — explicit height: React Flow requires a real pixel value */}
-            <div className="w-full flex gap-4" style={{ height: 'calc(100vh - 190px)' }}>
+            {/* Content — fills whatever space the shell's flex layout actually gives us;
+                a hardcoded calc(100vh - Npx) here goes stale the moment the header's real
+                height changes (extra banner line, longer repo name, etc.), and since the
+                WorkspaceLayout ancestor is overflow-hidden, an overshoot gets silently
+                clipped with no scrollbar to recover it. flex-1 min-h-0 sizes correctly
+                regardless of header height. */}
+            <div className="w-full flex-1 min-h-0 flex gap-4">
                 {graphData ? (
                     <>
-                        {/* Persistent File Tree Sidebar */}
+                        {/* File Tree Sidebar */}
                         <div className="h-full rounded-xl overflow-hidden border border-border/50 shrink-0">
-                            <FileTreeSidebar 
-                                nodes={graphData.nodes} 
-                                onNodeClick={handleNodeClick} 
+                            <FileTreeSidebar
+                                nodes={graphData.nodes}
+                                onNodeClick={handleNodeClick}
                             />
                         </div>
 
-                        {/* Graph Canvas */}
-                        <div className="h-full flex-1 rounded-xl overflow-hidden shadow-2xl">
-                            <GraphCanvas
+                        {/* Hierarchical DAG Graph */}
+                        <div className="h-full flex-1 rounded-xl overflow-hidden shadow-2xl border border-border/30 bg-[#07091a]">
+                            <ConstellationGraph
                                 nodes={graphData.nodes}
                                 edges={graphData.edges}
-                                stats={graphData.stats}
                                 onNodeClick={handleNodeClick}
                             />
                         </div>

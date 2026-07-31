@@ -15,6 +15,6 @@ Consent for any prohibited uses must be obtained from **all members** of the fol
 *   **Aakshant Kumar**
 *   **Satish Kumar Sharma**
 *   **Abhishek Patel**
-*   **Prashnat Singh**
+*   **Prashant Singh**
 
 Any unauthorized use of this repository may result in legal action.
