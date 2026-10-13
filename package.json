@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "demo:create": "tsx src/scripts/create-demo.ts"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^4.0.72",
