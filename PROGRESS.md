@@ -28,11 +28,11 @@ file-by-file read of every route/page/component in `src/app` and `src/components
 | 3 | Onboarding | `/onboarding` | Rework (dead sibling route) | ~85% real, has dead twin |
 | 4 | Dashboard | `/dashboard` | Rework | ~60% real, "live" stats are fake |
 | 5 | Explore / Project Constellation | `/explore` | **Keep — strongest feature** | ~85% real |
-| 6 | Guard / Context Guard | `/guard` | Cut or rebuild | Real AI call, false "AST" claim |
-| 7 | PreFlightGateway (Explore's stress gate) | (component, no own route) | Fix or remove | Real code, dead data source |
-| 8 | `/api/preflightCheck` (Doc Explainer's "Impact Guard") | tab inside `/documentExplainer` | Fix or remove | Real AST, wrong target file |
-| 9 | Compiler | `/compiler` | **Fix urgently (security)** | Real execution, unsandboxed, unauthenticated |
-| 10 | Workspace ("Hybrid IDE") | `/workspace`, `/workspace/[id]` | Rework | Real persistence, execution mostly broken |
+| 6 | Guard / Context Guard | ~~`/guard`~~ | **Removed** (2026-08-01) | Deleted — was LLM guessing from pasted text, no real AST |
+| 7 | PreFlightGateway (Explore's stress gate) | ~~(component)~~ | **Removed** (2026-08-01) | Deleted — dead data source, never actually fired |
+| 8 | `/api/preflightCheck` (Doc Explainer's "Impact Guard") | ~~tab in `/documentExplainer`~~ | **Route removed, engine relocated** (2026-08-01) | Real `CodebaseAnalyzer` parked in `src/lib/parser/analyzer.ts`, unwired, for reuse once ripple detection is rebuilt on the merged IDE |
+| 9 | Compiler | ~~`/compiler`~~ (deleted) | **Merged into #10** (2026-08-01) | Its editor polish + execution mechanism now live in Workspace |
+| 10 | Workspace → **Web IDE** (merged with Compiler) | `/workspace`, `/workspace/[id]` | **Fixed — the one real IDE surface** (2026-08-01) | Real persistence + real 7-language execution, now authenticated and container-sandboxed |
 | 11 | Document Explainer | `/documentExplainer` | Rework | Real AI text, fake graph metrics, 3 dead sub-features |
 | 12 | Handbook | `/handbook`, `/handbook/[tech]`, `/handbook/map` | Keep, needs content | Real engine, thin/empty data |
 | 13 | Learn | `/learn` | Keep | Real, most sophisticated logic in the repo |
@@ -229,113 +229,180 @@ it's not silently misleading.
 
 ---
 
-### 6–8. Guard / Context Guard / PreFlightGateway / preflightCheck — four systems, one job
+### 6–8. Guard / Context Guard / PreFlightGateway / preflightCheck — RESOLVED 2026-08-01
 
-This audit found **four separate, non-communicating implementations** of "warn
-about the impact of a change," none of which share code with each other or with
-Explore's own graph:
+This audit originally found **four separate, non-communicating implementations**
+of "warn about the impact of a change," none of which shared code with each other
+or with Explore's own graph. As of the 2026-08-01 session, three are deleted and
+the fourth's real logic is intentionally parked, not wired to anything:
 
-| | Route/component | What it actually does | Status |
+| | Route/component | What it did | Resolution |
 |---|---|---|---|
-| 6a | `/guard` → `/api/guard` | Pastes a diff into a textarea, asks Mistral Large to *invent* a JSON ripple report. UI copy explicitly claims "AST dependency tracing" — **there is no AST parsing or codebase access at all**; it's the model guessing from a text snippet. Falls back to a canned `"unknown — review manually"` stub on parse failure. | Reachable, misleading claim |
-| 6b | `/api/preflightCheck` ("Impact Guard" tab in Document Explainer) | Uses a **real** ts-morph `CodebaseAnalyzer` to find genuine ripple effects — but the caller hardcodes `filePath: "src/app/page.tsx"` regardless of what the user pasted. Real analysis, wrong target, every time. | Reachable, wrong input |
-| 6c | `PreFlightGateway` (Explore's stress-score gate) | Reads real `fileNodes`/`architectureMetrics` tables — which nothing populates (same dead `CodeGraphBuilder` pipeline as #5's gap above). Its own code comment admits it: *"In a real app, this would probably bypass immediately... For demonstration, we simply won't render the blocker."* | Wired correctly, permanently inert |
-| 6d | `src/lib/agents/guard.ts::preflightCheck()` | A fourth implementation, OpenAI `gpt-4o`-based. Zero callers anywhere. | Dead code |
+| 6a | `/guard` → `/api/guard` | Pasted a diff into a textarea, asked Mistral Large to *invent* a JSON ripple report. UI copy claimed "AST dependency tracing" — there was no AST parsing or codebase access at all. | **Deleted.** Page, route, and nav links (`ClusterRail.tsx`, `WorkspaceLayout.tsx`, `TabProvider.tsx`) all removed. |
+| 6b | `/api/preflightCheck` ("Impact Guard" tab in Document Explainer) | Used a **real** ts-morph `CodebaseAnalyzer` to find genuine ripple effects — but the caller hardcoded `filePath: "src/app/page.tsx"` regardless of what the user pasted. Real analysis, wrong target, every time. | **Route deleted, engine kept.** The "Impact Guard" tab is gone from `DocReadingMode.tsx`. `CodebaseAnalyzer` (`src/lib/parser/analyzer.ts`) is real, working code — left intact with a parking comment explaining it's earmarked for reuse once ripple detection gets rebuilt against the merged IDE's real file source (`projectFiles`) instead of `process.cwd()`'s on-disk tree. |
+| 6c | `PreFlightGateway` (Explore's stress-score gate) | Read real `fileNodes`/`architectureMetrics` tables that nothing populates (same dead `CodeGraphBuilder` pipeline as #5's gap). Its own code comment admitted it was a demo shortcut that would bypass in a real app. | **Deleted.** Component and its call site in `explore/page.tsx` (state, the `getFileMetrics` gating call, the JSX render) all removed. Explore's own click-to-open-file flow is otherwise untouched. |
+| 6d | `src/lib/agents/guard.ts::preflightCheck()` | A fourth implementation, OpenAI `gpt-4o`-based. Zero callers anywhere. | **Deleted.** Confirmed zero references before removal. |
 
-**Verdict: Consolidate to one.** The real capability here — ts-morph-based ripple
-detection (6b's engine) — is legitimate and valuable, exactly the kind of "does
-this change break something" signal an intermediate-to-advanced programmer actually
-wants before a PR. But right now a user could hit any of four different "Guard"
-surfaces and get four different quality levels of answer, from "real AST analysis
-of the wrong file" to "an LLM confidently making up plausible-sounding file names."
-Pick #6b's real analyzer, wire it to the actual file/diff the user is working with,
-delete 6a's misleading-AST-claim UI copy or make it honestly LLM-only, delete 6d,
-and either populate 6c's data source for real or remove the gate.
+**Current state:** zero live "guard/impact" surfaces. The one piece of real,
+reusable logic (`CodebaseAnalyzer`) is intact and documented but deliberately
+unwired — rebuilding ripple/change-impact detection on top of it is explicitly
+deferred to a future session, once the merged IDE (see #9–10 below) is solid.
 
 ---
 
-### 9. Compiler (`/compiler` → `/api/execute`)
+### 9–10. Compiler + Workspace → merged Web IDE — RESOLVED 2026-08-01
 
-This is the feature you specifically flagged, so I gave it the deepest trace.
+This was the feature you specifically flagged as the theoretical-vs-real example
+(claiming an in-browser editor "for every language" without the infrastructure to
+back it), so it got the deepest trace, and the deepest fix.
 
-**Claims:** Run code in 7 languages (Python, JS, C, C++, Java, Go, Rust) with
-auto-detect, in a real Monaco editor.
+**What this cluster looked like before the merge:** two independently-built,
+partial editors. Compiler (`/compiler`) had a real Monaco editor and real
+execution — actual `child_process.spawn()` of the *host machine's own* compilers
+(`python`, `node`, `gcc`/`g++`, `javac`/`java`, `go run`, `rustc`) for 7 languages —
+but with **zero sandboxing** (no container, no seccomp, no cgroup limits, just a
+5-second wall-clock timeout) and **no authentication** on `/api/execute` at all: an
+open, unauthenticated remote-code-execution endpoint on whatever host ran the app.
+Workspace (`/workspace`) had genuinely solid authenticated, user-scoped Drizzle
+persistence against `projectFiles`, but claimed "isolated sandbox environments" in
+its copy over what was actually just a database row (`POST /api/codebases`'s own
+comment: `// Generate a quick fake archive ID`), only recognized 2 of its own
+editor's languages when running code, and had a bug that displayed hard execution
+failures as `"Process exited with code 0"` — a lie a user would reasonably trust.
 
-**Reality — more real than I initially expected, but with a serious problem:** the
-editor is genuinely Monaco (not a textarea). Execution is **real**: it writes your
-code to a temp file and directly `spawn()`s the *host machine's own* `python`,
-`node`, `go run`, `gcc`/`g++`+binary, `javac`/`java`, or `rustc`+binary — actual
-compilation/interpretation, actual output, for those 7 languages, provided the host
-has those toolchains installed.
+**What changed:**
+- **Merged into one surface.** `/workspace` (+ `/workspace/[projectId]`) is now the
+  only IDE route. `/compiler`, its dedicated components
+  (`ControlPanel`/`EditorWindow`/`OutputTerminal`/`Sidebar`), and
+  `src/lib/languageDetector.ts` are deleted; nav links (`ClusterRail.tsx`,
+  `WorkspaceLayout.tsx`, `TabProvider.tsx`) updated to match.
+- **Execution is now real container-per-run, not raw host `spawn()`.**
+  `/api/execute` requires an authenticated session (401 otherwise) and runs every
+  execution in a disposable Docker container (`docker/sandbox.Dockerfile`):
+  `--network none`, `--memory 128m`, `--cpus 0.5`, `--pids-limit 64`,
+  `--cap-drop ALL`, `--security-opt no-new-privileges`, `--read-only` root
+  filesystem with a small writable `/tmp` tmpfs for compiled output, running as a
+  non-root user, with the request's source file bind-mounted read-only. An
+  in-container `timeout` plus a host-side backup `docker kill` both bound each
+  run's wall-clock time. Fails clearly (503, with the exact `docker build` command
+  to run) if the sandbox image isn't built rather than silently falling back to
+  anything unsafe.
+- **False-success bug fixed.** `WorkspaceEditor.handleExecute` now checks
+  `data.error`/`!response.ok` first and surfaces it as a real error — it no longer
+  falls through to a fabricated `?? 0` exit code when execution never actually ran.
+- **Language coverage aligned, honestly.** `getLanguageFromFile` now recognizes all
+  7 execute-supported languages (previously only 2: JS and Python — C/C++/Java/Go/
+  Rust had no file-extension mapping at all, despite `/compiler` having claimed to
+  support them). The Run button is disabled with an explanatory tooltip for any
+  other file type (`.ts`, `.json`, `.html`, `.css`, `.md`, etc.) instead of hitting
+  the endpoint and 500ing. No UI copy claims "every language" — the scope is stated
+  as exactly what's real.
+- **Fabricated infrastructure copy removed.** "Isolated sandbox environments" is
+  gone from `/workspace`'s page copy and the per-card "Node Environment" label;
+  `POST /api/codebases`'s comment now says plainly that `archiveId` is a display
+  label, not a provisioned environment.
+- **Flavor-text console lines removed.** "Connecting to Language Server... Done" /
+  "Linking Mentor Observability Layer... Active" (neither of which existed) are
+  gone, replaced with an honest single ready line.
+- **Folder delete now cascades.** `DELETE /api/workspace/files/[id]` walks the full
+  descendant subtree in-app before deleting, so removing a folder removes its
+  contents instead of orphaning children with a `parentId` pointing at a deleted
+  row. The client-side file-tree state is updated to match all deleted IDs, not
+  just the one clicked.
+- **A bonus fix found while implementing, not in the original audit:** the runtime
+  output console was built via raw `element.innerHTML +=` string concatenation of
+  program stdout/stderr — a stored-XSS vector, since a program's own printed output
+  is untrusted content and could contain `<script>`/markup that the DOM would then
+  parse as real HTML. Replaced with React state (`runtimeLogs`) rendered as normal
+  JSX text nodes, which auto-escapes.
+- **Also folded in while merging:** Compiler's nicer Monaco setup (the
+  `archive-dark` custom theme, `fontLigatures`, smooth-caret animation) and its
+  Ctrl/Cmd+Enter-to-run keybinding, both now in `WorkspaceEditor.tsx`.
 
-**The serious problem:** there is **no sandboxing whatsoever** — no container, no
-seccomp, no cgroup CPU/memory limits, nothing but a 5-second wall-clock timeout —
-and **no authentication check** on `/api/execute` at all. As written, this is an
-open, unauthenticated remote-code-execution endpoint on whatever host runs this
-app. That's not a completeness gap, that's a real security issue if this is ever
-deployed reachable from the internet.
+**Verified end-to-end, 2026-08-01 19:31 IST (same-day follow-up):** Docker Desktop
+was started, `docker build -t vedcode-sandbox -f docker/sandbox.Dockerfile .`
+completed successfully (~578MB image), and all 7 languages were actually executed
+through the real `docker run` invocation `/api/execute` constructs (same flags,
+same command templates) — not just type-checked. `tsc --noEmit`/`next lint` clean
+throughout. This surfaced **3 real bugs that static review and type-checking could
+never have caught**, all now fixed in `route.ts`:
 
-**Your example, precisely confirmed:** the claim (implicit in the UI, explicit in
-`/workspace`'s copy — see #10) is "isolated sandbox," "code editor for every
-language." The actual mechanism covers exactly 7 hardcoded languages via raw host
-process execution with zero isolation. This is the textbook case from your original
-question — the destination (a real, safe, universal in-browser compiler) is
-described, but the infrastructure to get there (sandboxed multi-language execution,
-e.g. Judge0/Piston-style containers, or a WASM-based in-browser runtime like
-Pyodide) isn't in the repo, isn't in the dependencies, and there's no Dockerfile or
-IaC suggesting it's provisioned at deploy time either.
+1. **Compiled-language binaries couldn't run at all** — `gcc main.c -o /tmp/a.out
+   && /tmp/a.out` failed with `Permission denied`. Docker's `--tmpfs` mounts
+   default to `noexec` for security; the fix compiled C/C++/Rust binaries into but
+   silently couldn't execute them from `/tmp`. **Fix:** added `exec` to the tmpfs
+   mount options (`/tmp:rw,exec,size=64m,mode=1777`).
+2. **`go run` couldn't even start** — `failed to initialize build cache ...
+   read-only file system`. Go's build cache defaults to `$HOME/.cache/go-build`,
+   which sits outside the one writable path (`/tmp`) under `--read-only`. **Fix:**
+   set `GOCACHE=/tmp/go-cache` for the go command specifically.
+3. **`go run` still failed after that** — `failed to create new OS thread ...
+   errno=11`, because Go's build+run pipeline (separate compile/link subprocesses,
+   each internally threaded) needs more than the `--pids-limit 64` ceiling allows,
+   even single-threaded. **Fix:** set `GOMAXPROCS=1` for the go command (keeps
+   Go's own concurrency modest, consistent with the container's 0.5-CPU
+   allocation) and raised `--pids-limit` from 64 → 128 (still a firm anti-fork-bomb
+   ceiling for arbitrary submitted code, just not razor-thin against a
+   legitimately thread-hungry toolchain).
 
-**Practicality:**
-- Beginner — would be genuinely great (quick "does this work" loop) *if it were
-  safe to expose*. Right now it isn't safe to expose to anyone.
-- Intermediate/advanced/expert — 7 fixed languages with no packages/dependencies
-  support is well below what any of these users already have locally; the value
-  proposition (vs. just running it in their own terminal) is weak even before the
-  security issue.
+After those three fixes, re-verified clean runs for all 7 languages (Python,
+JavaScript, C, C++, Java, Go, Rust — each printing real output from real
+compilation/interpretation), a genuine compile error surfacing correctly (bad C
+syntax → real `gcc` error text, non-zero exit — not swallowed), the 8s timeout
+actually firing on an infinite loop (exit 124, ~9s wall clock including container
+overhead), full network isolation (`urllib` request inside the container fails
+with DNS resolution failure, confirming `--network none` holds), and the read-only
+root filesystem + read-only source mount both correctly rejecting writes (running
+as uid 10001, non-root, as intended).
 
-**Verdict: Fix urgently or take offline.** Minimum bar before this is exposed to
-any real user: authenticate the endpoint, and put real isolation around execution
-(container-per-run at minimum). "Every language" is the long-term ambition worth
-keeping as a goal, but the honest scope of what exists today is "7-language
-unsandboxed local exec" — market it as that, or don't ship it publicly yet.
+**Takeaway for future sandboxed-execution work in this repo:** container
+*security* flags (`--read-only`, `--network none`, `--cap-drop`, `--pids-limit`)
+are straightforward to get right by reasoning about them; container *runtime
+compatibility* (each language toolchain's own assumptions about where it's allowed
+to write, how many threads it wants to spawn) is not — that only surfaces by
+actually running each one. Budget for this kind of live-testing pass on any future
+language additions to this sandbox, not just a code read.
 
----
+**Practicality, updated:**
+- Beginner — now genuinely usable for a quick "does this work" loop, since it's no
+  longer unsafe to expose.
+- Intermediate/advanced/expert — still a fixed 7 languages with no
+  package/dependency support, so the value proposition against their own local
+  toolchain remains modest; that's an honest, stated limitation now rather than a
+  hidden gap behind "every language" marketing.
 
-### 10. Workspace / "Hybrid IDE" (`/workspace`, `/workspace/[projectId]`)
+**Explicitly deferred:** ripple/change-impact detection against this new IDE (the
+parked `CodebaseAnalyzer` from #6–8) — not built or wired up in this pass, by
+design. That's the natural next step once the merged IDE itself has been verified
+working end-to-end.
 
-**Claims:** Per-project file tree + Monaco editor + "isolated sandbox environments,"
-branded "VedCode Hybrid IDE" with a "Language Server" and "Mentor Observability
-Layer."
-
-**Reality:** File persistence is genuinely real — authenticated, user-scoped Drizzle
-CRUD against a real `projectFiles` table (this part is solid engineering). But:
-
-- **"Isolated sandbox environment" is fabricated marketing copy over a database
-  row.** `POST /api/codebases` creates a `projects` row and a cosmetic random ID;
-  the code comment literally says `// Generate a quick fake archive ID`. No VM, no
-  container, nothing.
-- **Execution mostly doesn't work for what this editor is built for.** The file
-  tree lets you create `.ts`, `.json`, `.html`, `.css`, `.md` files, but
-  `/api/execute` only recognizes `javascript` and `python` from this surface's
-  language mapping — everything else 500s.
-- **A real bug hides that failure as success.** When execution fails with
-  "unsupported language," the client only reads `data.run?.code ?? 0` and always
-  prints `"Process exited with code 0."` — a hard failure is displayed as a clean
-  success. A user editing a `.ts` file, clicking Run, and seeing "exited with code
-  0" would reasonably believe their (unexecuted) code worked.
-- The "Connecting to Language Server... Done" / "Linking Mentor Observability
-  Layer... Active" console lines are static flavor text on mount — no language
-  server, no mentor layer exists.
-- Folder delete doesn't cascade — deleting a folder orphans its children in the DB
-  rather than removing them.
-
-**Verdict: Rework, and fix the false-success bug first** — that one is actively
-harmful (a user trusting a lie about their code working) rather than merely
-incomplete. Decide whether Workspace or Compiler is the "real" editor going
-forward — right now they're two independently-built surfaces (different themes,
-different persistence, different output UI) that only converge at the same
-under-scoped `/api/execute` backend. Maintaining both doubles the surface area for
-a capability neither one fully delivers yet.
+**Known issues found by the user during real use, 2026-08-01 — not yet fixed,
+noted here so they aren't lost:**
+1. **Save fails with an unexpected error; the file isn't actually persisted.**
+   Not yet diagnosed. `handleSaveFile` → `PUT /api/workspace/files/[id]` is the
+   path to check first (`WorkspaceEditor.tsx` around `handleSaveFile`).
+2. **No way to feed stdin to a running program.** Reported symptom: a script
+   using `input("enter your name: ")` hangs until the 8s timeout (`Process exited
+   with code 124`) instead of receiving input. Two distinct problems bundled in
+   this one report, worth separating when this gets picked up:
+   - **A likely real bug in `runInContainer`** (`src/app/api/execute/route.ts`):
+     `proc.stdin.write(...)`/`proc.stdin.end()` only run `if (stdinData && ...)` —
+     when the stdin box is empty, `proc.stdin` is never `.end()`'d, so the
+     container's stdin stays open indefinitely and `input()` blocks until the
+     outer timeout kills it, rather than hitting EOF immediately (which is the
+     correct behavior for "no stdin supplied" — Python would raise `EOFError`
+     right away instead of hanging). Fix is probably just calling `.end()`
+     unconditionally.
+   - **A real UX gap, not just a bug:** even when the stdin box *is* pre-filled,
+     the current design only supports supplying all input *before* clicking Run —
+     there's no way to see a prompt appear and then type a response while the
+     program is still running. Genuine interactive stdin (type-while-running)
+     would need a streaming connection (e.g. WebSocket) between the browser and
+     the running container, not the current one-shot request/response
+     `/api/execute` call — a real architecture change, not a quick fix. Worth
+     scoping explicitly with the user before starting: is "fill in stdin
+     up-front, single round-trip" an acceptable near-term fix, or is true
+     interactive back-and-forth required?
 
 ---
 
@@ -589,29 +656,40 @@ route is only reachable from dead code), `VaultExplorer.tsx`, `SkillTree.tsx`,
 `/api/logMemory`, `/api/getMemoryPrompt`, `/api/db-debug` (all three empty route
 dirs).
 
+Resolved 2026-08-01 (no longer in the codebase, listed here only so the history
+isn't lost): `src/lib/agents/guard.ts::preflightCheck` (deleted), `/guard` page +
+`/api/guard` route + `GuardSummary.tsx`/`ImpactList.tsx` (deleted),
+`PreFlightGateway.tsx` (deleted), `/api/preflightCheck` route (deleted — its
+`CodebaseAnalyzer` engine was kept, see #6–8 above), `/compiler` page + its 4
+dedicated components + `src/lib/languageDetector.ts` (deleted, merged into
+Workspace — see #9–10 above).
+
 ## Recommended path forward, roughly in priority order
 
-1. **Security, immediately:** authenticate `/api/execute` and `/api/admin/ingest`,
-   and put real process isolation around `/api/execute` (container-per-run at
-   minimum) before either is reachable by anyone outside the team.
-2. **Fix the false-success bug in Workspace** (#10) — showing "exited with code 0"
-   for code that never ran is actively misleading, not just incomplete.
+1. ~~**Security, immediately:** authenticate `/api/execute`~~ — **done 2026-08-01**
+   (auth required, real container-per-run isolation; not yet verified end-to-end,
+   see #9–10). `/api/admin/ingest` is **still unauthenticated** — separate task,
+   out of scope for the 2026-08-01 session.
+2. ~~**Fix the false-success bug in Workspace**~~ — **done 2026-08-01.**
 3. **Wire up `CodeGraphBuilder.indexCodebase()`** once, to repair three silently-dead
-   visualizations at once (#5, #6c, #20).
-4. **Consolidate the four Guard implementations to one** (#6) — pick the real
-   ts-morph analyzer, feed it the real target, delete the rest.
-5. **Delete confirmed dead code** listed above — it's not costing runtime
-   performance, but it costs every future person's (or agent's) time understanding
-   this codebase, and this audit exists partly so that doesn't have to be
-   re-discovered from scratch next time.
+   visualizations at once (#5, #6c [now removed, but the underlying dead pipeline
+   is unchanged], #20). Still open.
+4. ~~**Consolidate the four Guard implementations to one**~~ — **done differently,
+   2026-08-01:** rather than consolidating to one *live* surface, three were
+   deleted outright and the one real engine (`CodebaseAnalyzer`) was parked unwired
+   rather than reconnected, since rebuilding ripple detection properly needs the
+   IDE work (#9–10) done first. Reconnecting it is the natural next task.
+5. **Delete confirmed dead code** listed above — still open for everything except
+   the Guard/Compiler items resolved 2026-08-01 (see the resolved-items note just
+   above this list).
 6. **Cut Atelier/Vault/Lab formally** (routes + orphaned components + the dead
    `/vault` nav link) unless there's an active decision to rebuild them for real.
+   Still open.
 7. **Cross-link Handbook/Learn/Roadmap and unify their mastery-signal writes**
    (#12–14) — this is the highest product-value fix in the repo relative to effort,
-   since all the hard logic already exists and just isn't connected.
-8. **Decide the Compiler-vs-Workspace question** (#9/#10) — maintaining two
-   separately-built partial editors is strictly worse than committing to one and
-   finishing it.
+   since all the hard logic already exists and just isn't connected. Still open.
+8. ~~**Decide the Compiler-vs-Workspace question**~~ — **done 2026-08-01:** merged
+   into one surface (`/workspace`), see #9–10 above.
 
 ---
 
@@ -621,6 +699,221 @@ dirs).
 resumes. Keep the structure: what was covered, bugs found/fixed with root causes,
 known limitations, and next steps. Don't rewrite history — older sessions stay as-is
 below.
+
+---
+
+## 2026-08-01 19:31 IST — Follow-up: built and live-tested the Docker sandbox
+
+### What this covered
+The previous entry (below, 15:34 same day) shipped the container-per-run rewrite
+of `/api/execute` but explicitly flagged it as **not verified end-to-end** — Docker
+Desktop's daemon wasn't running on the dev machine at the time. This entry is that
+verification: started Docker Desktop, built `docker/sandbox.Dockerfile`
+(~578MB image), and actually ran all 7 languages through the exact `docker run`
+invocation `route.ts` constructs — not just read the code and trusted it.
+
+Prompted by the user hitting the expected "Sandbox image isn't built yet" error in
+the running app (a screenshot of `/workspace/.../test.py` showing that exact
+message) — confirming, incidentally, that the false-success bug fix from the
+15:34 session is working correctly: a real, honest, actionable error instead of a
+silent fake "exited with code 0."
+
+### Bugs found — only visible under live execution, not from reading the code
+1. **`noexec` on the `/tmp` tmpfs silently blocked every compiled language.**
+   C/C++/Rust all compile to `/tmp/a.out` and execute it; Docker's `--tmpfs`
+   defaults include `noexec`, so every one of them failed with `Permission denied`
+   despite compiling successfully. **Fix:** added `exec` to the tmpfs mount options.
+2. **`go run` couldn't initialize its build cache** — defaults to
+   `$HOME/.cache/go-build`, not writable under `--read-only`. **Fix:**
+   `GOCACHE=/tmp/go-cache`.
+3. **`go run` then hit the pids limit** — its build+run pipeline spawns more OS
+   threads than the original `--pids-limit 64` allowed, even with a single
+   goroutine's worth of actual work. **Fix:** `GOMAXPROCS=1` for the go command,
+   plus raised the ceiling to 128 (still a real anti-fork-bomb bound).
+
+Full detail, including the exact error text for each, is in Part 1 #9–10 above —
+not duplicated here to avoid drift between the two.
+
+### Verified this session
+All 7 languages (clean success case each), a genuine compile error surfacing
+correctly end-to-end, the 8s in-container timeout actually firing on an infinite
+loop (exit 124), full network isolation (`--network none` confirmed via a blocked
+`urllib` request), and the read-only root filesystem + read-only source mount both
+correctly rejecting write attempts while running as non-root (uid 10001).
+`tsc --noEmit` clean after the three fixes.
+
+### Not covered this session
+- Did not test through the actual authenticated `/api/execute` HTTP endpoint from
+  a browser session — verification was done by replicating the exact `docker run`
+  invocation `route.ts` constructs, which validates the sandbox mechanism itself
+  (the part that was genuinely unverified) but not the Next.js route handler's own
+  request parsing / auth-check / response-shaping code path. That code type-checks
+  and was reviewed, but a real click-Run-in-the-browser pass is still worth doing.
+- Did not re-test Guard-cluster or nav changes from the 15:34 session — out of
+  scope for this Docker-focused follow-up.
+- `PROGRESS.pdf` was not regenerated after this entry — regenerate before treating
+  the PDF as current (see the `pandoc` → headless-Edge `--print-to-pdf` pipeline
+  used earlier in this file's history if the exact commands are needed again).
+
+---
+
+## 2026-08-01 15:34 IST — Session: cut the four Guard implementations, merged Compiler + Workspace into one IDE
+
+### What this session covered
+A scoped follow-up to the 2026-08-01 full repo audit, working from a task spec
+agreed against `PROGRESS.md` Part 1 #6–8, #9, #10. Two explicit deliverables:
+(A) reduce the four redundant "impact/ripple guard" implementations to zero live
+surfaces while preserving the one real piece of logic for later reuse, and
+(B) merge Compiler and Workspace into one secured, honestly-scoped web IDE.
+Ripple/change-impact detection against the new IDE was explicitly **not** built
+this session — deferred by design, see Part 1 #6–8 and #9–10 above for the full
+current-state writeups (this log only covers what happened and why).
+
+### Part A — Guard consolidation
+- Deleted `/guard` page, `/api/guard` route, and its two support components
+  (`GuardSummary.tsx`, `ImpactList.tsx`) — this was the implementation whose UI
+  claimed "AST dependency tracing" while actually just asking an LLM to invent a
+  ripple report from pasted text, no codebase access at all.
+- Deleted `PreFlightGateway.tsx` and its call site in `explore/page.tsx`
+  (`preFlightFile` state, the `getFileMetrics` gating call before opening a file,
+  the JSX render) — this component's own source comment admitted it was a demo
+  shortcut that would bypass in a real app, and its data source
+  (`fileNodes`/`architectureMetrics`) is fed by nothing, so it never actually
+  fired. Explore's click-to-open-file flow now just opens the file directly;
+  nothing else in Explore was touched, per the task's explicit scope limit.
+- Deleted `src/lib/agents/guard.ts` (the OpenAI `gpt-4o`-based fourth
+  implementation) after confirming zero callers via repo-wide grep.
+- Deleted `/api/preflightCheck` (the route wiring) but **kept**
+  `src/lib/parser/analyzer.ts`'s `CodebaseAnalyzer` — this is real, working
+  ts-morph-based ripple detection, the one piece of genuine logic among the four.
+  Left intentionally unwired with a parking comment explaining why: it was always
+  pointed at a hardcoded `src/app/page.tsx` rather than the user's actual target,
+  and properly fixing that means feeding it the merged IDE's real file source
+  (`projectFiles`) instead of `process.cwd()`'s on-disk tree — future work, not
+  this session's.
+- Removed the "Impact Guard" tab from `DocReadingMode.tsx` (Document Explainer)
+  entirely: tab state, the fetch call, the tab button, the content panel. Left the
+  other three tabs (Deep Insight, Knowledge Map, Creative Domains) completely
+  untouched, per scope.
+- Removed all three now-dead `/guard` and `/compiler` nav references from
+  `ClusterRail.tsx`, `WorkspaceLayout.tsx`, and `TabProvider.tsx` (the latter two
+  done in the same pass for both routes, since both needed the same treatment).
+
+### Part B — Compiler + Workspace merge
+
+**Kept `/workspace` (+ `/workspace/[projectId]`) as the one surviving IDE route.**
+Deleted `/compiler`, its four dedicated components
+(`ControlPanel`/`EditorWindow`/`OutputTerminal`/`Sidebar`), and
+`src/lib/languageDetector.ts` (its content-sniffing auto-detect doesn't fit a
+file-based IDE where every file already has a real name/extension).
+
+**`/api/execute` rewritten from raw host `spawn()` to container-per-run:**
+- Requires an authenticated session (`auth()`, 401 otherwise) — it had no auth
+  check at all before.
+- Every execution now runs in a disposable Docker container built from the new
+  `docker/sandbox.Dockerfile` (Debian slim + python3/nodejs/build-essential/
+  default-jdk-headless/golang-go/rustc, non-root `sandbox` user), invoked with
+  `--rm --network none --memory 128m --cpus 0.5 --pids-limit 64 --cap-drop ALL
+  --security-opt no-new-privileges --read-only` plus a small writable `/tmp`
+  tmpfs for compiled output, and the request's single source file bind-mounted
+  read-only. This replaces directly `spawn()`ing the *host machine's own*
+  compilers with zero isolation, which is what was there before.
+- Timeout enforcement is now two-layered: an in-container `timeout 8s` wrapping
+  the actual language command (primary), plus a host-side timer that SIGKILLs the
+  local `docker run` client and issues a separate `docker kill <name>` as a
+  backup, since killing the CLI client alone doesn't guarantee the daemon stops
+  the container.
+- If the sandbox image isn't built yet, returns a clear 503 with the exact
+  `docker build` command to run, rather than a cryptic failure or (worse) any
+  kind of unsafe fallback.
+- Language scope is unchanged and stated honestly: exactly the same 7 languages
+  as before (Python, JavaScript, C, C++, Java, Go, Rust) — no "every language"
+  claim anywhere in the merged UI.
+
+**Bugs fixed in `WorkspaceEditor.tsx` as part of the merge, not after:**
+1. **False-success bug.** `handleExecute` now checks `data.error`/`!response.ok`
+   first and shows a real error line — it no longer falls through to
+   `data.run?.code ?? 0` and prints `"Process exited with code 0"` for a request
+   that never actually ran (e.g. an unsupported-language 400, or an unauthenticated
+   401). This was actively misleading — a user could believe broken code worked.
+2. **Language coverage mismatch.** `getLanguageFromFile` previously mapped file
+   extensions to only 2 of the 7 languages `/api/execute` could run (`javascript`,
+   `python`) — `.c`/`.cpp`/`.java`/`.go`/`.rs` had no mapping at all, despite
+   `/compiler` having offered all 7 via its dropdown. Extended the extension map to
+   cover all 7 (restoring the full capability the merge is supposed to preserve),
+   and the Run button is now `disabled` with an explanatory tooltip for any file
+   type outside that set (`.ts`, `.json`, `.html`, `.css`, `.md`, etc.) instead of
+   hitting the endpoint and 500ing.
+3. **Cascading folder delete.** `DELETE /api/workspace/files/[id]` previously
+   deleted only the clicked row, orphaning any children with a `parentId` pointing
+   at a now-gone row (the schema declares an `onDelete: 'cascade'` FK, but no
+   migration in `drizzle/` actually created that constraint on the live table —
+   this project uses `drizzle-kit push` for iterative schema sync, so the
+   migrations folder doesn't reflect the true DB state either way; fixed at the
+   application layer instead, which works regardless of DB-level constraint
+   state). The route now walks the full descendant subtree in-app before
+   deleting and returns `{ deletedIds }`; the client (`handleDeleteNode`) now
+   clears every deleted ID from local state, not just the one clicked.
+4. **Fabricated infrastructure copy.** `/workspace`'s "Manage your individual
+   projects and isolated sandbox environments" became "Manage your projects and
+   their files"; the per-project card's "Node Environment" label (implying a
+   provisioned runtime that doesn't exist) became "Open Project";
+   `POST /api/codebases`'s `// Generate a quick fake archive ID` comment was
+   rewritten to state plainly that `archiveId` is a display label, not an
+   environment.
+5. **Flavor-text console lines removed.** "Connecting to Language Server... Done."
+   and "Linking Mentor Observability Layer... Active." (neither system exists) are
+   gone from the runtime console's initial content.
+6. **Found while implementing, not in the original audit — stored-XSS-shaped bug:**
+   the runtime output console built its content via
+   `document.getElementById('runtime-logs').innerHTML += ...` string concatenation
+   of raw program stdout/stderr. Since program output is untrusted content, a
+   program that printed `<script>`-like text would have it parsed as real markup
+   by the DOM. Replaced the whole log panel with React state
+   (`runtimeLogs: LogLine[]`) rendered as normal JSX text nodes, which auto-escape;
+   added a ref + effect to preserve the previous auto-scroll-to-bottom behavior.
+7. **Folded in Compiler's editor polish while merging:** the custom `archive-dark`
+   Monaco theme (previously only in the deleted `EditorWindow.tsx`) and a
+   Ctrl/Cmd+Enter-to-run keybinding are now in `WorkspaceEditor.tsx`. Note on the
+   keybinding: Monaco's `onMount` fires once per editor instance, not once per
+   render, so binding it directly to `handleExecute` would have closed over
+   whichever file was active *at mount time* and silently kept running that one
+   forever regardless of which file the user later switched to. Fixed by keeping
+   the latest `handleExecute` in a ref (`handleExecuteRef`, updated every render
+   via a plain `useEffect`) and having the keybinding call through that ref
+   instead of the closed-over function directly.
+
+### Verified vs. not verified
+- `tsc --noEmit` and `next lint` both clean across every file touched this
+  session — no new errors or warnings anywhere in either Part A or Part B.
+- **Not verified: the Docker sandbox itself.** Docker Desktop's daemon was not
+  running on the dev machine this session (`docker info` failed to connect). The
+  container-per-run code and `docker/sandbox.Dockerfile` are written and
+  type-check, but no one has actually run
+  `docker build -t vedcode-sandbox -f docker/sandbox.Dockerfile .` or exercised a
+  real execution through the UI yet. This is flagged here deliberately rather than
+  claimed as done — **next session should start Docker Desktop, build the image,
+  and manually test all 7 languages (success case + a deliberate compile error +
+  a deliberate infinite loop to confirm the timeout actually fires) before this
+  is trusted in front of a real user.**
+
+### Known limitations / explicitly deferred
+- Ripple/change-impact detection is not wired to anything right now — by design,
+  per this session's scope. `CodebaseAnalyzer` is real and parked; reconnecting it
+  to the merged IDE's real file source is the natural next task once the IDE
+  itself is verified working end-to-end (see above).
+- `/api/admin/ingest` is still unauthenticated (Part 1 #19) — known, explicitly
+  out of scope for this session, tracked separately.
+- Everything else marked "still open" in Part 1's "Recommended path forward" list
+  remains open: wiring up `CodeGraphBuilder.indexCodebase()`, deleting the
+  remaining dead-code inventory, cutting Atelier/Vault/Lab formally, and
+  cross-linking Handbook/Learn/Roadmap.
+- The Docker-based sandbox is Windows-dev-machine-tested for path handling only
+  informally (Docker Desktop's Windows CLI generally auto-translates
+  `C:\...`-style bind-mount paths for its Linux backend) — this hasn't been
+  confirmed to actually work end-to-end (see "Not verified" above), and a Linux
+  production host would use POSIX temp paths natively either way, so this is a
+  dev-environment-only consideration, not a portability concern for deployment.
 
 ---
 

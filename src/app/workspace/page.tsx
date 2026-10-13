@@ -77,7 +77,7 @@ export default function WorkspacesIndexPage() {
             Your Codebases
           </h1>
           <p className="text-sm text-slate-400">
-            Manage your individual projects and isolated sandbox environments.
+            Manage your projects and their files.
           </p>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function WorkspacesIndexPage() {
             </div>
 
             <div className="relative z-10 mt-6 pt-4 border-t border-border flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Node Environment</span>
+                <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Open Project</span>
                 <ArrowRight size={16} className="text-slate-600 group-hover:text-indigo-400 transition-colors transform group-hover:translate-x-1" />
             </div>
           </motion.div>

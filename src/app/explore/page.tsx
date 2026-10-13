@@ -6,11 +6,8 @@ import ConstellationGraph from '@/components/galaxy/ConstellationGraph';
 import { UploadPanel } from '@/components/galaxy/UploadPanel';
 import { FileExplainSheet } from '@/components/galaxy/FileExplainSheet';
 import { FileTreeSidebar } from '@/components/galaxy/FileTreeSidebar';
-import { PreFlightGateway } from '@/components/guard/PreFlightGateway';
 import type { ConstellationStats } from '@/lib/constellation/cache';
 import { RefreshCw, Clock } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { getFileMetrics } from '@/lib/actions/exploreActions';
 import { useLocalStorage } from '@/lib/hooks/useLocalStorage';
 
 // TTL: 10 minutes — graph data older than this triggers a soft-refresh prompt
@@ -22,8 +19,6 @@ interface GraphCache {
 }
 
 export default function ExplorePage() {
-    const { data: session } = useSession();
-
     // Persist the last loaded repo URL and stats across navigations (10 min TTL)
     const [graphCache, setGraphCache, clearGraphCache] = useLocalStorage<GraphCache | null>(
         'vedcode_explore_cache',
@@ -42,36 +37,13 @@ export default function ExplorePage() {
         language: string;
     } | null>(null);
 
-    const [preFlightFile, setPreFlightFile] = useState<{
-        filePath: string;
-        language: string;
-        metrics: { stressScore: number; learningGaps: string[] };
-    } | null>(null);
-
     const handleGraphReady = useCallback((nodes: Node[], edges: Edge[], stats: ConstellationStats) => {
         setGraphData({ nodes, edges, stats });
         setGraphCache({ repoUrl: stats.repo || '', stats });
     }, [setGraphCache]);
 
-    const handleNodeClick = async (filePath: string, language: string) => {
-        if (!session?.user) {
-            setSelectedFile({ filePath, language });
-            return;
-        }
-
-        const user = session.user as any;
-        try {
-            const metrics = await getFileMetrics(filePath, user.id);
-
-            if (metrics.stressScore >= 0.6 || metrics.learningGaps.length > 0) {
-                setPreFlightFile({ filePath, language, metrics });
-            } else {
-                setSelectedFile({ filePath, language });
-            }
-        } catch (error) {
-            console.error("Failed to fetch file metrics:", error);
-            setSelectedFile({ filePath, language });
-        }
+    const handleNodeClick = (filePath: string, language: string) => {
+        setSelectedFile({ filePath, language });
     };
 
     const handleClear = () => {
@@ -164,19 +136,6 @@ export default function ExplorePage() {
                     filePath={selectedFile.filePath}
                     language={selectedFile.language}
                     onClose={() => setSelectedFile(null)}
-                />
-            )}
-
-            {/* Pre-Flight Gateway */}
-            {preFlightFile && (
-                <PreFlightGateway
-                    filePath={preFlightFile.filePath}
-                    metrics={preFlightFile.metrics}
-                    onAcknowledge={() => {
-                        setSelectedFile({ filePath: preFlightFile.filePath, language: preFlightFile.language });
-                        setPreFlightFile(null);
-                    }}
-                    onCancel={() => setPreFlightFile(null)}
                 />
             )}
         </div>

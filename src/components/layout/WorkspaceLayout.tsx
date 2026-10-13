@@ -12,8 +12,6 @@ const PAGE_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/learn": "Learn",
   "/explore": "Explore",
-  "/guard": "Guard",
-  "/compiler": "Compiler",
   "/vedcode": "Knowledge Studio",
   "/documentExplainer": "Document Explainer",
   "/workspace": "IDE Workspace",

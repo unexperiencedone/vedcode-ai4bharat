@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import {
   FolderOpen,
@@ -14,7 +14,9 @@ import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { FileTreeSidebar, FileNode } from "./FileTreeSidebar";
 
-// Basic extension-to-monaco-language mapping
+// Extension-to-monaco-language mapping. Covers more than what's executable —
+// editing any file type is normal for an IDE; running it is a separate question
+// (see EXECUTABLE_LANGUAGES below).
 const getLanguageFromFile = (filename: string | undefined) => {
   if (!filename) return "typescript";
   const ext = filename.split(".").pop()?.toLowerCase();
@@ -27,6 +29,20 @@ const getLanguageFromFile = (filename: string | undefined) => {
       return "typescript";
     case "py":
       return "python";
+    case "c":
+    case "h":
+      return "c";
+    case "cpp":
+    case "cc":
+    case "cxx":
+    case "hpp":
+      return "cpp";
+    case "java":
+      return "java";
+    case "go":
+      return "go";
+    case "rs":
+      return "rust";
     case "json":
       return "json";
     case "html":
@@ -39,6 +55,15 @@ const getLanguageFromFile = (filename: string | undefined) => {
       return "plaintext";
   }
 };
+
+// Exactly what /api/execute can actually run — kept in sync with
+// src/app/api/execute/route.ts's LANGUAGES map by hand, since this is a small,
+// fixed, honestly-scoped list (see PROGRESS.md Part 1 #9). Anything else edits
+// fine but can't be run from here; the Run button reflects that instead of
+// hitting the endpoint and failing.
+const EXECUTABLE_LANGUAGES = new Set([
+  "python", "javascript", "c", "cpp", "java", "go", "rust",
+]);
 
 interface WorkspaceEditorProps {
   projectId: string;
@@ -61,6 +86,20 @@ export function WorkspaceEditor({ projectId }: WorkspaceEditorProps) {
   // Terminal UI State
   const [terminalHeight, setTerminalHeight] = useState(192); // 48 * 4 (h-48)
   const [isResizingTerminal, setIsResizingTerminal] = useState(false);
+  // Rendered via JSX below, not innerHTML — program output (stdout/stderr) is
+  // untrusted content and was previously concatenated straight into the DOM via
+  // `.innerHTML +=`, which is a stored-XSS vector for any program that prints
+  // HTML/script-like text. React's default text rendering escapes it.
+  type LogLine = { kind: "info" | "stdout" | "stderr" | "error"; text: string };
+  const [runtimeLogs, setRuntimeLogs] = useState<LogLine[]>([
+    { kind: "info", text: "VedCode IDE ready." },
+  ]);
+  const appendLog = (line: LogLine) => setRuntimeLogs((prev) => [...prev, line]);
+  const logContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = logContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [runtimeLogs]);
 
   // Resizing Terminal Logic
   useEffect(() => {
@@ -175,8 +214,13 @@ export function WorkspaceEditor({ projectId }: WorkspaceEditorProps) {
         method: "DELETE",
       });
       if (res.ok) {
-        setFiles((prev) => prev.filter((f) => f.id !== id));
-        if (activeFile?.id === id) {
+        // The server cascade-deletes the whole subtree if `id` is a folder;
+        // reflect all of it here too, not just the clicked node, or deleted
+        // children linger in the tree until the next reload.
+        const { deletedIds } = (await res.json()) as { deletedIds: number[] };
+        const deletedSet = new Set(deletedIds);
+        setFiles((prev) => prev.filter((f) => !deletedSet.has(f.id)));
+        if (activeFile && deletedSet.has(activeFile.id)) {
           setActiveFile(null);
           setCode("");
         }
@@ -209,57 +253,59 @@ export function WorkspaceEditor({ projectId }: WorkspaceEditorProps) {
     }
   };
 
+  const activeLanguage = getLanguageFromFile(activeFile?.name);
+  const isRunnable = EXECUTABLE_LANGUAGES.has(activeLanguage);
+
   const handleExecute = async () => {
-    if (!activeFile) return;
+    if (!activeFile || !isRunnable) return;
 
-    const currentLogs = document.getElementById('runtime-logs');
-    if (currentLogs) {
-      currentLogs.innerHTML += `<br/><span class="text-emerald-400">&gt; Executing ${activeFile.name}...</span><br/>`;
-      currentLogs.scrollTop = currentLogs.scrollHeight;
-    }
-
+    appendLog({ kind: "info", text: `> Executing ${activeFile.name}...` });
     setIsExecuting(true);
-    let lang = getLanguageFromFile(activeFile.name);
-    // Overrides for piston compatibility
-    if (lang === 'typescript') lang = 'typescript';
-    if (lang === 'javascript') lang = 'javascript';
 
     try {
       const response = await fetch('/api/execute', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          language: lang,
-          version: "*",
+          language: activeLanguage,
           code: code,
           stdin: customInput,
         }),
       });
 
       const data = await response.json();
-      
-      if (currentLogs) {
-        if (data.run?.stderr) {
-            currentLogs.innerHTML += `<span class="text-red-400 break-pre-wrap whitespace-pre-wrap">${data.run.stderr}</span><br/>`;
-        }
-        if (data.run?.stdout) {
-            currentLogs.innerHTML += `<span class="text-slate-300 break-pre-wrap whitespace-pre-wrap">${data.run.stdout}</span><br/>`;
-        }
-        if (!data.run?.stderr && !data.run?.stdout && data.message) {
-             currentLogs.innerHTML += `<span class="text-amber-400 break-pre-wrap whitespace-pre-wrap">${data.message}</span><br/>`;
-        }
-        currentLogs.innerHTML += `<span class="text-slate-500">Process exited with code ${data.run?.code ?? 0}.</span><br/>`;
-        currentLogs.scrollTop = currentLogs.scrollHeight;
+
+      // Read `data.error` first and stop there — this is the fix for the bug
+      // where a hard failure (auth, unsupported language, sandbox unavailable)
+      // used to fall through to `data.run?.code ?? 0` and print "Process exited
+      // with code 0", i.e. report a failure as a clean success. A real failure
+      // now always shows as a real error, never as a fabricated exit code.
+      if (!response.ok || data.error) {
+        appendLog({ kind: "error", text: data.error || `Execution failed (HTTP ${response.status}).` });
+        return;
       }
-    } catch (err: any) {
-      if (currentLogs) {
-         currentLogs.innerHTML += `<span class="text-red-400">Failed to connect to execution engine.</span><br/>`;
-         currentLogs.scrollTop = currentLogs.scrollHeight;
+
+      if (data.run?.stderr) {
+        appendLog({ kind: "stderr", text: data.run.stderr });
       }
+      if (data.run?.stdout) {
+        appendLog({ kind: "stdout", text: data.run.stdout });
+      }
+      appendLog({ kind: "info", text: `Process exited with code ${data.run?.code}.` });
+    } catch {
+      appendLog({ kind: "error", text: "Failed to connect to execution engine." });
     } finally {
       setIsExecuting(false);
     }
   };
+
+  // Monaco's onMount fires once per editor instance, not per render — a command
+  // bound directly to `handleExecute` there would close over whatever `activeFile`
+  // was at mount time and never see later ones. Keeping the latest version in a
+  // ref lets the Ctrl/Cmd+Enter binding (registered once, below) always call
+  // through to the current file.
+  const handleExecuteRef = useRef(handleExecute);
+  useEffect(() => { handleExecuteRef.current = handleExecute; });
 
   if (loading) {
     return (
@@ -336,7 +382,14 @@ export function WorkspaceEditor({ projectId }: WorkspaceEditorProps) {
             </button>
             <button
               onClick={handleExecute}
-              disabled={isExecuting || !activeFile}
+              disabled={isExecuting || !activeFile || !isRunnable}
+              title={
+                !activeFile
+                  ? undefined
+                  : isRunnable
+                    ? "Run (Ctrl/Cmd+Enter)"
+                    : `Run isn't available for .${activeFile.name.split(".").pop()} files — supported: Python, JavaScript, C, C++, Java, Go, Rust`
+              }
               className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
             >
               {isExecuting ? (
@@ -357,17 +410,42 @@ export function WorkspaceEditor({ projectId }: WorkspaceEditorProps) {
           {activeFile ? (
             <Editor
               height="100%"
-              language={getLanguageFromFile(activeFile?.name)}
-              theme="vs-dark"
+              language={activeLanguage}
+              theme="archive-dark"
               value={code}
               onChange={(val) => setCode(val || "")}
+              onMount={(editor, monaco) => {
+                monaco.editor.defineTheme("archive-dark", {
+                  base: "vs-dark",
+                  inherit: true,
+                  rules: [
+                    { token: "comment", foreground: "4b5563", fontStyle: "italic" },
+                    { token: "keyword", foreground: "60a5fa", fontStyle: "bold" },
+                    { token: "string", foreground: "34d399" },
+                    { token: "number", foreground: "f472b6" },
+                    { token: "type", foreground: "a78bfa" },
+                  ],
+                  colors: {
+                    "editor.background": "#0b0e11",
+                    "editor.lineHighlightBackground": "#ffffff06",
+                    "editorLineNumber.foreground": "#374151",
+                    "editorLineNumber.activeForeground": "#6b7280",
+                    "editor.selectionBackground": "#3b82f620",
+                    "editorCursor.foreground": "#3b82f6",
+                  },
+                });
+                monaco.editor.setTheme("archive-dark");
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => handleExecuteRef.current());
+              }}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
                 fontFamily: "var(--font-geist-mono)",
+                fontLigatures: true,
                 padding: { top: 16 },
                 smoothScrolling: true,
                 cursorBlinking: "smooth",
+                cursorSmoothCaretAnimation: "on",
                 fixedOverflowWidgets: true,
               }}
             />
@@ -397,15 +475,21 @@ export function WorkspaceEditor({ projectId }: WorkspaceEditorProps) {
               <Terminal size={12} /> Runtime Output
             </span>
           </div>
-          <div
-            id="runtime-logs"
-            className="flex-1 p-4 font-mono text-xs text-slate-400 overflow-y-auto custom-scrollbar"
-          >
-            VedCode Hybrid IDE Initialized.
-            <br />
-            Connecting to Language Server... Done.
-            <br />
-            Linking Mentor Observability Layer... Active.
+          <div ref={logContainerRef} className="flex-1 p-4 font-mono text-xs overflow-y-auto custom-scrollbar">
+            {runtimeLogs.map((line, i) => (
+              <div
+                key={i}
+                className={
+                  line.kind === "stderr" || line.kind === "error"
+                    ? "text-red-400 whitespace-pre-wrap break-words"
+                    : line.kind === "stdout"
+                      ? "text-slate-300 whitespace-pre-wrap break-words"
+                      : "text-emerald-400/80"
+                }
+              >
+                {line.text}
+              </div>
+            ))}
           </div>
           
           {/* Terminal Input */}

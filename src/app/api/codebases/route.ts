@@ -39,7 +39,9 @@ export async function POST(req: Request) {
     const json = await req.json();
     const body = CreateProjectSchema.parse(json);
 
-    // Generate a quick fake archive ID
+    // A short, human-readable display ID for this project (e.g. "ARCHIVE-482-Q") —
+    // purely a label. It does not provision any environment, container, or
+    // sandbox; there is no per-project runtime behind it, just this DB row.
     const archiveId = `ARCHIVE-${Math.floor(Math.random() * 900) + 100}-${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
 
     const [newProject] = await db.insert(projects).values({

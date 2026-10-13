@@ -7,8 +7,6 @@ import {
   LayoutDashboard,
   BookOpen,
   Compass,
-  ShieldAlert,
-  Code2,
   Brain,
   FileSearch,
   Settings,
@@ -26,9 +24,7 @@ const clusters = [
   // Divider group: learning tools
   { name: "Learn", icon: BookOpen, href: "/learn" },
   { name: "Explore", icon: Compass, href: "/explore" },
-  { name: "Guard", icon: ShieldAlert, href: "/guard" },
   // Tools
-  { name: "Compiler", icon: Code2, href: "/compiler" },
   { name: "Knowledge Studio", icon: Brain, href: "/vedcode" },
   { name: "Handbook", icon: LibraryBig, href: "/handbook" },
   { name: "Doc Explainer", icon: FileSearch, href: "/documentExplainer" },

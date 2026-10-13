@@ -46,7 +46,7 @@ import { cn } from "@/lib/utils";
 export default function DocReadingMode() {
   const [documentInput, setDocumentInput] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "read" | "diagram" | "code" | "guard"
+    "read" | "diagram" | "code"
   >("read");
 
   // Tab state
@@ -57,10 +57,6 @@ export default function DocReadingMode() {
   const [scenarios, setScenarios] = useState<string>("");
   const [scenariosLoading, setScenariosLoading] = useState(false);
   const [scenariosError, setScenariosError] = useState<string>("");
-
-  const [impactSummary, setImpactSummary] = useState<string>("");
-  const [impactLoading, setImpactLoading] = useState(false);
-  const [impactError, setImpactError] = useState<string>("");
 
   // Tab 1: Deep Insight — direct streaming state (no useChat)
   const [explanation, setExplanation] = useState<string>("");
@@ -82,8 +78,6 @@ export default function DocReadingMode() {
     setGraphError("");
     setScenarios("");
     setScenariosError("");
-    setImpactSummary("");
-    setImpactError("");
     setKeywords({});
 
 
@@ -145,24 +139,6 @@ export default function DocReadingMode() {
       .catch((err) => setScenariosError(err.message))
       .finally(() => setScenariosLoading(false));
 
-    // ── Tab 4: Impact Guard ──
-    setImpactLoading(true);
-    fetch("/api/preflightCheck", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filePath: "src/app/page.tsx",
-        content: documentInput,
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.impactSummary) setImpactSummary(data.impactSummary);
-        else setImpactError(data.error || "Failed to analyze impact");
-      })
-      .catch((err) => setImpactError(err.message))
-      .finally(() => setImpactLoading(false));
-
     // ── Keywords: run in parallel, non-blocking ──
     setKeywordsLoading(true);
     fetch("/api/documentKeywords", {
@@ -180,9 +156,9 @@ export default function DocReadingMode() {
 
 
   const isAnyLoading =
-    isReadingLoading || graphLoading || scenariosLoading || impactLoading;
+    isReadingLoading || graphLoading || scenariosLoading;
   const hasAnyContent =
-    explanation || graphData || scenarios || impactSummary;
+    explanation || graphData || scenarios;
 
   // Shared markdown component factory — injects keyword highlighting into all tabs
   const makeMarkdownComponents = (accentColor: string) => ({
@@ -319,13 +295,6 @@ export default function DocReadingMode() {
               label="Creative Domains"
               icon={<Code size={16} />}
               loading={scenariosLoading}
-            />
-            <TabButton
-              active={activeTab === "guard"}
-              onClick={() => setActiveTab("guard")}
-              label="Impact Guard"
-              icon={<AlertCircle size={16} />}
-              loading={impactLoading}
             />
           </div>
 
@@ -493,53 +462,6 @@ export default function DocReadingMode() {
                     )}
                   </div>
                 )}
-
-                {/* ── TAB 4: Impact Guard ── */}
-                {activeTab === "guard" && (
-                  <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                    {impactError && (
-                      <ErrorCard
-                        title="Context Guard Failure"
-                        message={impactError}
-                      />
-                    )}
-
-                    {impactLoading && !impactSummary && (
-                      <LoadingState
-                        label="Detecting Structural Ripple Effects..."
-                        color="text-red-500"
-                      />
-                    )}
-
-                    {impactSummary && (
-                      <article className="prose prose-invert prose-lg max-w-none pb-40 prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0">
-                        <div className="mb-10 p-8 bg-red-500/5 border border-red-500/10 rounded-[2rem]">
-                          <div className="flex items-center gap-4 mb-3">
-                            <div className="p-2 bg-red-500/20 rounded-xl">
-                              <AlertCircle className="text-red-400" size={20} />
-                            </div>
-                            <h4 className="text-red-400 font-bold m-0 text-xl tracking-tight">
-                              Architectural Pre-flight Active
-                            </h4>
-                          </div>
-                          <p className="text-sm text-red-300/60 leading-relaxed m-0 font-medium">
-                            VedCode is currently auditing your project for
-                            architectural ripple effects. The system has
-                            identified the following potential breakages.
-                          </p>
-                        </div>
-
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm, remarkMath]}
-                          rehypePlugins={[rehypeKatex]}
-                          components={makeMarkdownComponents("bg-red-500") as any}
-                        >
-                          {impactSummary}
-                        </ReactMarkdown>
-                      </article>
-                    )}
-                  </div>
-                )}
               </div>
             </ScrollArea>
           )}
@@ -591,17 +513,13 @@ function TabButton({ active, onClick, label, icon, loading }: any) {
       ? "text-blue-500"
       : label === "Knowledge Map"
         ? "text-emerald-500"
-        : label === "Creative Domains"
-          ? "text-amber-500"
-          : "text-red-500";
+        : "text-amber-500"; // Creative Domains
   const glowShadow =
     label === "Deep Insight"
       ? "shadow-blue-500/10"
       : label === "Knowledge Map"
         ? "shadow-emerald-500/10"
-        : label === "Creative Domains"
-          ? "shadow-amber-500/10"
-          : "shadow-red-500/10";
+        : "shadow-amber-500/10"; // Creative Domains
 
   return (
     <button

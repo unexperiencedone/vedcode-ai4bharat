@@ -1,6 +1,21 @@
 import { Project, Node } from "ts-morph";
 import * as path from "path";
 
+/**
+ * Parked pending IDE work (see PROGRESS.md Part 1, #6b and Part 2 session log).
+ *
+ * This is real, working ts-morph-based ripple detection — genuinely finds which
+ * files reference a given exported symbol. It previously powered Document
+ * Explainer's "Impact Guard" tab via /api/preflightCheck, but that route always
+ * pointed it at a hardcoded `src/app/page.tsx` rather than whatever the user
+ * actually cared about — real analysis, wrong target, every time. That route has
+ * been removed. This class is intentionally left intact and unwired: it's the one
+ * piece of real logic worth keeping from the four "impact/ripple guard"
+ * implementations that used to exist, for reuse once ripple/change-impact
+ * detection gets rebuilt on top of the merged IDE's real file source
+ * (`projectFiles`) instead of `process.cwd()`'s on-disk source tree.
+ */
+
 export interface ImpactNode {
     filePath: string;
     name: string;
